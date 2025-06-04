@@ -1,0 +1,189 @@
+name: CI/CD Pipeline
+
+# When to run this workflow
+on:
+  push:
+    branches: [ main, develop ]  # Run on pushes to main/develop
+  pull_request:
+    branches: [ main ]           # Run on PRs to main
+  schedule:
+    - cron: '0 6 * * 1'         # Weekly run (Monday 6 AM UTC) to catch dependency issues
+
+# Define jobs that run in parallel (unless dependencies specified)
+jobs:
+
+  # ============================================================================
+  # QUALITY CHECKS JOB
+  # ============================================================================
+  quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: latest
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+
+    - name: Load cached dependencies
+      id: cached-poetry-dependencies
+      uses: actions/cache@v3
+      with:
+        path: .venv
+        key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+
+    - name: Install dependencies
+      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+      run: poetry install --without=docs
+
+    - name: Run pre-commit hooks
+      run: |
+        poetry run pre-commit run --all-files
+
+    - name: Run mypy type checking
+      run: |
+        poetry run mypy src/ --strict
+
+    - name: Run security check with bandit
+      run: |
+        poetry run bandit -r src/ -f json -o bandit-report.json
+        poetry run bandit -r src/  # Also output to console
+
+    - name: Upload bandit report
+      uses: actions/upload-artifact@v3
+      if: always()  # Upload even if bandit fails
+      with:
+        name: bandit-security-report
+        path: bandit-report.json
+
+  # ============================================================================
+  # TESTING JOB (Matrix strategy for multiple Python versions & OS)
+  # ============================================================================
+  test:
+    name: Test Suite
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false  # Don't cancel other jobs if one fails
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.11', '3.12']
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: latest
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+
+    - name: Load cached dependencies
+      id: cached-poetry-dependencies
+      uses: actions/cache@v3
+      with:
+        path: .venv
+        key: venv-${{ matrix.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
+
+    - name: Install dependencies
+      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+      run: poetry install --without=docs
+
+    - name: Run tests with coverage
+      run: |
+        poetry run pytest --cov=src --cov-report=xml --cov-report=term-missing -v
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'  # Only upload once
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false  # Don't fail CI if codecov fails
+
+  # ============================================================================
+  # PACKAGE BUILD JOB
+  # ============================================================================
+  build:
+    name: Build Package
+    runs-on: ubuntu-latest
+    needs: [quality, test]  # Only run if quality and tests pass
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+
+    - name: Build package
+      run: |
+        poetry build
+
+    - name: Check built package
+      run: |
+        poetry run pip install twine
+        poetry run twine check dist/*
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: dist-files
+        path: dist/
+        retention-days: 7
+
+  # ============================================================================
+  # DOCUMENTATION BUILD JOB
+  # ============================================================================
+  docs:
+    name: Build Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+
+    - name: Install dependencies
+      run: |
+        poetry install --with=docs
+
+    - name: Build documentation
+      run: |
+        poetry run sphinx-build -b html docs/source docs/build/html -W
+
+    - name: Upload documentation artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: documentation
+        path: docs/build/html/
+        retention-days: 7

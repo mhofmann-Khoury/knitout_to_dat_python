@@ -1,0 +1,57 @@
+name: Update Dependencies
+
+# Run weekly to check for dependency updates
+on:
+  schedule:
+    - cron: '0 10 * * 1'  # Monday at 10 AM UTC
+  workflow_dispatch:      # Allow manual triggering
+
+jobs:
+  update-dependencies:
+    name: Update Dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+
+    - name: Update dependencies
+      run: |
+        poetry update
+
+    - name: Run tests with updated dependencies
+      run: |
+        poetry install
+        poetry run pytest -v
+
+    - name: Check for security vulnerabilities
+      run: |
+        poetry run safety check
+
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: 'deps: update dependencies'
+        title: 'Automated dependency update'
+        body: |
+          This PR updates project dependencies to their latest versions.
+
+          **Changes:**
+          - Updated Poetry lock file with latest compatible versions
+          - All tests pass with updated dependencies
+          - Security check completed
+
+          Please review the changes and merge if everything looks good.
+        branch: automated-dependency-update
+        delete-branch: true

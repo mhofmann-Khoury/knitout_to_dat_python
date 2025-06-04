@@ -16,3 +16,4 @@ repos:
       - id: mypy
         additional_dependencies: [types-colorama]  # Add type stubs as needed
         args: [--config-file=pyproject.toml]
+        exclude: ^(docs/|test/)
