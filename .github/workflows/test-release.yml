@@ -130,8 +130,9 @@ jobs:
     # -------------------------------------------------------------------------
     - name: Check package quality
       run: |
-        poetry run pip install twine
-        poetry run twine check dist/*
+        python -m pip install twine
+        python -m twine check dist/*
+      # Install twine directly with pip and run via python -m to avoid metadata issues
       # Twine validates that your package:
       # - Has correct metadata format
       # - README renders properly on PyPI
