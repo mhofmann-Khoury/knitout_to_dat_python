@@ -8,7 +8,7 @@ Requirements
 * Compatible with Windows, macOS, and Linux
 
 Install from PyPI (Not Yet Deployed)
------------------
+------------------------------------
 
 The easiest way to install knitout-to-dat-python is from PyPI::
 
