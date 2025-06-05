@@ -1,0 +1,203 @@
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "knitout-to-dat-python"
+version = "0.1.0"
+description = "A tool replicating the functionality of the CMU Textile's Lab Knitout-to-Dat Interpreter implemented in Javascript. This python library can convert Knitout files into Shima Seiki DAT files."
+authors = ["Megan Hofmann <m.hofmann@northeastern.edu>"]
+maintainers = ["Megan Hofmann <m.hofmann@northeastern.edu>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/mhofmann-Khoury/knitout_to_dat_python"
+repository = "https://github.com/mhofmann-Khoury/knitout_to_dat_python"
+documentation = "https://knitout-to-dat-python.readthedocs.io"
+keywords = ["knitout", "machine knitting", "converter", "act lab"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Natural Language :: English",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Manufacturing",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+]
+
+# Package discovery - tells Poetry where to find your Python packages
+packages = [
+    {include = "knitout_to_dat_python", from = "src"},
+]
+
+# Include additional files in the distribution package
+include = [
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "docs/**/*",
+    "examples/**/*.knitout",
+    "tests/fixtures/**/*.dat",
+]
+
+# Exclude files from the distribution package
+exclude = [
+    "tests/**/*",
+    "docs/_build",
+    "*.pyc",
+    "__pycache__",
+    ".pytest_cache",
+    ".coverage",
+    "htmlcov",
+]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+# Add runtime dependencies as you develop
+# click = "^8.1.0"  # For CLI interface
+# pydantic = "^2.0.0"  # For data validation
+# pathlib = "*"  # Built-in, but good to document usage
+
+[tool.poetry.group.dev.dependencies]
+# Testing framework and plugins
+pytest = "^7.4.0"
+pytest-cov = "^4.1.0"
+pytest-mock = "^3.11.0"
+pytest-xdist = "^3.3.0"  # Parallel test execution
+
+# Code quality tools
+mypy = "^1.5.0"
+
+# Documentation
+sphinx = "^7.1.0"
+sphinx-rtd-theme = "^1.3.0"
+myst-parser = "^2.0.0"  # Markdown support in Sphinx
+
+# Development tools
+pre-commit = "^3.4.0"
+ipython = "^8.14.0"  # Better REPL for development
+jupyterlab = "^4.0.0"  # For development notebooks
+
+# Windows-specific dependencies
+colorama = {version = "^0.4.6", markers = "sys_platform == 'win32'"}
+
+[tool.poetry.group.docs.dependencies]
+# Separate group for documentation building
+sphinx = "^7.1.0"
+sphinx-rtd-theme = "^1.3.0"
+sphinx-autodoc-typehints = "^1.24.0"
+myst-parser = "^2.0.0"
+
+[tool.poetry.scripts]
+# Command-line interface scripts
+knitout-to-dat = "knitout_to_dat.cli:main"
+
+[tool.poetry.urls]
+# Additional project URLs
+"Bug Tracker" = "https://github.com/mhofmann-Khoury/knitout_to_dat_python/issues"
+"Changelog" = "https://github.com/mhofmann-Khoury/knitout_to_dat_python/blob/main/CHANGELOG.md"
+"Discussions" = "https://github.com/mhofmann-Khoury/knitout_to_dat_python/discussions"
+
+
+# MyPy configuration - Static type checker
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = [
+    "tests.*",
+]
+disallow_untyped_defs = false
+
+# Pytest configuration - Testing framework
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--cov=knitout_to_dat_python",
+    "--cov-report=html",
+    "--cov-report=term-missing",
+    "--cov-report=xml",
+    "--strict-markers",
+    "--strict-config",
+    "-ra",
+    "--tb=short"
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "file_io: marks tests that read/write files",
+    "knitout_parser: marks tests for knitout parsing functionality",
+    "dat_generator: marks tests for DAT file generation",
+]
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+]
+
+# Coverage configuration - Code coverage measurement
+[tool.coverage.run]
+# Specify which files to measure coverage for
+source = ["src"]
+# Files to exclude from coverage measurement
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__pycache__/*",
+    "*/site-packages/*",
+    "*/venv/*",
+    "setup.py",
+    "conftest.py",
+]
+# Enable branch coverage (not just line coverage)
+branch = true
+
+[tool.coverage.report]
+# Exclude lines from coverage report
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+# Fail if coverage falls below this percentage
+fail_under = 80
+# Show missing lines in report
+show_missing = true
+# Skip covered files in report
+skip_covered = false
+# Skip empty files
+skip_empty = true
+
+[tool.coverage.html]
+# Directory for HTML coverage reports
+directory = "htmlcov"
+
+[tool.coverage.xml]
+# File for XML coverage reports (used by CI/CD)
+output = "coverage.xml"

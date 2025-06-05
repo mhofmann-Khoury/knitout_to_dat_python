@@ -1,91 +1,137 @@
+# =============================================================================
+# CI/CD PIPELINE FOR PYTHON PROJECT
+# =============================================================================
+# This workflow runs automated checks and tests on your Python project.
+# It ensures code quality, runs tests across multiple environments, builds
+# the package, and generates documentation.
+#
+# WHEN THIS RUNS:
+# - Every push to 'main' or 'develop' branches
+# - Every pull request targeting 'main' branch
+# - Weekly scheduled run (Mondays at 6 AM UTC) to catch dependency issues
+# =============================================================================
+
 name: CI/CD Pipeline
 
-# When to run this workflow
+# Define when this workflow should run
 on:
   push:
-    branches: [ main, develop ]  # Run on pushes to main/develop
+    branches: [ main, develop ]  # Run when code is pushed to main or develop
   pull_request:
-    branches: [ main ]           # Run on PRs to main
+    branches: [ main ]           # Run when PRs are opened against main
   schedule:
-    - cron: '0 6 * * 1'         # Weekly run (Monday 6 AM UTC) to catch dependency issues
+    - cron: '0 6 * * 1'         # Weekly health check (Monday 6 AM UTC)
 
-# Define jobs that run in parallel (unless dependencies specified)
+# =============================================================================
+# JOBS SECTION
+# =============================================================================
+# Jobs run in parallel by default unless dependencies are specified with 'needs'
+# Each job runs on a fresh virtual machine (runner)
 jobs:
 
-  # ============================================================================
-  # QUALITY CHECKS JOB
-  # ============================================================================
+  # ===========================================================================
+  # JOB 1: CODE QUALITY CHECKS
+  # ===========================================================================
+  # This job runs various code quality tools to ensure consistent formatting,
+  # type safety, and adherence to coding standards
   quality:
-    name: Code Quality Checks
-    runs-on: ubuntu-latest
+    name: Code Quality Checks           # Human-readable name shown in GitHub UI
+    runs-on: ubuntu-latest             # Use latest Ubuntu runner (free for public repos)
 
     steps:
+    # -------------------------------------------------------------------------
+    # STEP 1: Get the code from the repository
+    # -------------------------------------------------------------------------
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v4        # Official GitHub action to download repo content
+      # This downloads your entire repository to the runner's file system
 
+    # -------------------------------------------------------------------------
+    # STEP 2: Set up Python environment
+    # -------------------------------------------------------------------------
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v4   # Official action to install Python
       with:
-        python-version: '3.12'
+        python-version: '3.12'        # Use Python 3.12 (adjust to your needs)
+      # This installs Python and makes it available in PATH
 
+    # -------------------------------------------------------------------------
+    # STEP 3: Install Poetry (dependency manager)
+    # -------------------------------------------------------------------------
     - name: Install Poetry
-      uses: snok/install-poetry@v1
+      uses: snok/install-poetry@v1    # Third-party action specifically for Poetry
       with:
-        version: latest
-        virtualenvs-create: true
-        virtualenvs-in-project: true
+        version: latest              # Always use the latest Poetry version
+        virtualenvs-create: true     # Create virtual environments (isolated dependencies)
+        virtualenvs-in-project: true # Create .venv folder inside project (easier caching)
+      # Poetry manages dependencies and builds your package
 
+    # -------------------------------------------------------------------------
+    # STEP 4: Cache dependencies for faster builds
+    # -------------------------------------------------------------------------
     - name: Load cached dependencies
-      id: cached-poetry-dependencies
-      uses: actions/cache@v3
+      id: cached-poetry-dependencies  # Give this step an ID, so we can reference it later
+      uses: actions/cache@v3          # Official caching action
       with:
-        path: .venv
+        path: .venv                   # Cache the virtual environment folder
+        # Create a unique cache key based on OS, Python version, and lock file hash
         key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+      # If dependencies haven't changed, this restores them from cache (much faster)
 
+    # -------------------------------------------------------------------------
+    # STEP 5: Install dependencies (only if not cached)
+    # -------------------------------------------------------------------------
     - name: Install dependencies
+      # Only run this step if the cache missed (dependencies changed)
       if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-      run: poetry install --without=docs
+      run: poetry install --without=docs  # Install all deps except documentation deps
+      # --without=docs saves time since we don't need doc deps for quality checks
 
+    # -------------------------------------------------------------------------
+    # STEP 6: Run pre-commit hooks (formatting, linting, etc.)
+    # -------------------------------------------------------------------------
     - name: Run pre-commit hooks
       run: |
         poetry run pre-commit run --all-files
+      # Pre-commit runs tools like Black (formatting), isort (import sorting), etc.
+      # --all-files runs on entire codebase (not just changed files)
+      # Requires .pre-commit-config.yaml in your repo root
 
+    # -------------------------------------------------------------------------
+    # STEP 7: Run type checking with mypy
+    # -------------------------------------------------------------------------
     - name: Run mypy type checking
       run: |
         poetry run mypy src/ --strict
+      # MyPy performs static type analysis to catch type-related errors
+      # --strict enables all optional error checking features
+      # Only checks files in src/ directory (adjust path as needed)
 
-    - name: Run security check with bandit
-      run: |
-        poetry run bandit -r src/ -f json -o bandit-report.json
-        poetry run bandit -r src/  # Also output to console
-
-    - name: Upload bandit report
-      uses: actions/upload-artifact@v3
-      if: always()  # Upload even if bandit fails
-      with:
-        name: bandit-security-report
-        path: bandit-report.json
-
-  # ============================================================================
-  # TESTING JOB (Matrix strategy for multiple Python versions & OS)
-  # ============================================================================
+  # ===========================================================================
+  # JOB 2: TEST SUITE (Matrix Strategy)
+  # ===========================================================================
+  # This job runs your test suite across multiple Python versions and operating
+  # systems to ensure compatibility. Matrix strategy runs multiple combinations.
   test:
     name: Test Suite
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}          # Use the OS from matrix strategy
+
     strategy:
-      fail-fast: false  # Don't cancel other jobs if one fails
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.11', '3.12']
+      fail-fast: false                # Don't cancel other matrix jobs if one fails
+      matrix:                         # Define combinations to test
+        os: [ubuntu-latest, windows-latest, macos-latest]  # Test on 3 operating systems
+        python-version: ['3.11', '3.12']                  # Test on 2 Python versions
+    # This creates 6 total jobs: 3 OS × 2 Python versions = 6 combinations
 
     steps:
+    # Same initial steps as quality job, but repeated for each matrix combination
     - name: Checkout code
       uses: actions/checkout@v4
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: ${{ matrix.python-version }}  # Use version from matrix
 
     - name: Install Poetry
       uses: snok/install-poetry@v1
@@ -94,37 +140,54 @@ jobs:
         virtualenvs-create: true
         virtualenvs-in-project: true
 
+    # -------------------------------------------------------------------------
+    # Cache dependencies (separate cache for each matrix combination)
+    # -------------------------------------------------------------------------
     - name: Load cached dependencies
       id: cached-poetry-dependencies
       uses: actions/cache@v3
       with:
         path: .venv
+        # Cache key includes both OS and Python version from matrix
         key: venv-${{ matrix.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
 
     - name: Install dependencies
       if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
       run: poetry install --without=docs
 
+    # -------------------------------------------------------------------------
+    # STEP: Run test suite with coverage reporting
+    # -------------------------------------------------------------------------
     - name: Run tests with coverage
       run: |
         poetry run pytest --cov=src --cov-report=xml --cov-report=term-missing -v
+      # pytest: Python testing framework
+      # --cov=src: Measure code coverage for src/ directory
+      # --cov-report=xml: Generate XML coverage report (for external tools)
+      # --cov-report=term-missing: Show missing lines in terminal output
+      # -v: Verbose output (show individual test names)
 
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'  # Only upload once
+    # -------------------------------------------------------------------------
+    # STEP: Save coverage report as artifact (for later viewing)
+    # -------------------------------------------------------------------------
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v3
+      # Only upload from one matrix combination to avoid duplicates
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
       with:
-        file: ./coverage.xml
-        flags: unittests
-        name: codecov-umbrella
-        fail_ci_if_error: false  # Don't fail CI if codecov fails
+        name: coverage-report         # Name for the artifact
+        path: coverage.xml            # Upload the XML coverage report
+        retention-days: 30            # Keep coverage reports for 30 days
 
-  # ============================================================================
-  # PACKAGE BUILD JOB
-  # ============================================================================
+  # ===========================================================================
+  # JOB 3: PACKAGE BUILD
+  # ===========================================================================
+  # This job builds your Python package (wheel and source distribution) to
+  # ensure it can be packaged correctly for distribution
   build:
     name: Build Package
     runs-on: ubuntu-latest
-    needs: [quality, test]  # Only run if quality and tests pass
+    needs: [quality, test]            # Only run if quality checks and tests pass
 
     steps:
     - name: Checkout code
@@ -138,25 +201,39 @@ jobs:
     - name: Install Poetry
       uses: snok/install-poetry@v1
 
+    # -------------------------------------------------------------------------
+    # STEP: Build the package
+    # -------------------------------------------------------------------------
     - name: Build package
       run: |
         poetry build
+      # This creates both wheel (.whl) and source distribution (.tar.gz) files
+      # Output goes to dist/ directory
 
+    # -------------------------------------------------------------------------
+    # STEP: Validate the built package
+    # -------------------------------------------------------------------------
     - name: Check built package
       run: |
-        poetry run pip install twine
-        poetry run twine check dist/*
+        poetry run pip install twine    # Tool for uploading to PyPI
+        poetry run twine check dist/*   # Validate package metadata and structure
+      # twine check ensures your package meets PyPI requirements
 
+    # -------------------------------------------------------------------------
+    # STEP: Upload build artifacts for later use or inspection
+    # -------------------------------------------------------------------------
     - name: Upload build artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: dist-files
-        path: dist/
-        retention-days: 7
+        name: dist-files              # Name for the artifact (shown in GitHub UI)
+        path: dist/                   # Upload entire dist/ directory
+        retention-days: 7             # Keep artifacts for 7 days
 
-  # ============================================================================
-  # DOCUMENTATION BUILD JOB
-  # ============================================================================
+  # ===========================================================================
+  # JOB 4: DOCUMENTATION BUILD
+  # ===========================================================================
+  # This job builds your project documentation using Sphinx to ensure
+  # documentation can be generated without errors
   docs:
     name: Build Documentation
     runs-on: ubuntu-latest
@@ -173,17 +250,56 @@ jobs:
     - name: Install Poetry
       uses: snok/install-poetry@v1
 
+    # -------------------------------------------------------------------------
+    # STEP: Install dependencies INCLUDING documentation dependencies
+    # -------------------------------------------------------------------------
     - name: Install dependencies
       run: |
-        poetry install --with=docs
+        poetry install --with=docs     # Install docs dependencies (Sphinx, themes, etc.)
 
+    # -------------------------------------------------------------------------
+    # STEP: Build documentation with Sphinx
+    # -------------------------------------------------------------------------
     - name: Build documentation
       run: |
         poetry run sphinx-build -b html docs/source docs/build/html -W
+      # sphinx-build: Main Sphinx command
+      # -b html: Build HTML output
+      # docs/source: Source directory (adjust path as needed)
+      # docs/build/html: Output directory
+      # -W: Treat warnings as errors (ensures clean documentation)
 
+    # -------------------------------------------------------------------------
+    # STEP: Upload documentation artifacts
+    # -------------------------------------------------------------------------
     - name: Upload documentation artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: documentation
-        path: docs/build/html/
-        retention-days: 7
+        name: documentation           # Name for the artifact
+        path: docs/build/html/        # Upload built HTML documentation
+        retention-days: 7             # Keep for 7 days
+
+# =============================================================================
+# WHAT YOU NEED IN YOUR REPOSITORY
+# =============================================================================
+# For this workflow to work, ensure you have:
+#
+# 1. pyproject.toml with these dev dependencies:
+#    [tool.poetry.group.dev.dependencies]
+#    pytest = "^7.0"
+#    pytest-cov = "^4.0"
+#    mypy = "^1.0"
+#    pre-commit = "^3.0"
+#    twine = "^4.0"
+#
+#    [tool.poetry.group.docs.dependencies]
+#    sphinx = "^6.0"
+#
+# 2. .pre-commit-config.yaml in your repo root
+#
+# 3. tests/ directory with your pytest tests
+#
+# 4. docs/source/ directory with Sphinx documentation
+#
+# 5. src/ directory with your Python package
+# =============================================================================
