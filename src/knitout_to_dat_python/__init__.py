@@ -10,4 +10,4 @@ Interpreter, originally implemented in JavaScript.
 __version__ = "0.1.0"
 __author__ = "Megan Hofmann"
 __email__ = "m.hofmann@northeastern.edu"
-__all__: list[str] = []
+__all__: list[str] = ["__version__", "__author__", "__email__"]
