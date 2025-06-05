@@ -64,7 +64,16 @@ jobs:
         version: latest              # Always use the latest Poetry version
         virtualenvs-create: true     # Create virtual environments (isolated dependencies)
         virtualenvs-in-project: true # Create .venv folder inside project (easier caching)
+        installer-parallel: true    # Use parallel installer for better Windows compatibility
       # Poetry manages dependencies and builds your package
+
+    # -------------------------------------------------------------------------
+    # STEP 3.5: Verify Poetry installation
+    # -------------------------------------------------------------------------
+    - name: Verify Poetry installation
+      run: |
+        poetry --version
+      # Verify Poetry is properly installed and accessible
 
     # -------------------------------------------------------------------------
     # STEP 4: Cache dependencies for faster builds
@@ -140,6 +149,15 @@ jobs:
         version: latest
         virtualenvs-create: true
         virtualenvs-in-project: true
+        installer-parallel: true    # Use parallel installer for better Windows compatibility
+
+    # -------------------------------------------------------------------------
+    # STEP 3.5: Verify Poetry installation
+    # -------------------------------------------------------------------------
+    - name: Verify Poetry installation
+      run: |
+        poetry --version
+      # Verify Poetry is properly installed and accessible
 
     # -------------------------------------------------------------------------
     # Cache dependencies (separate cache for each matrix combination)
