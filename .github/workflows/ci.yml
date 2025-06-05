@@ -70,7 +70,7 @@ jobs:
     # STEP 4: Cache dependencies for faster builds
     # -------------------------------------------------------------------------
     - name: Load cached dependencies
-      id: cached-poetry-dependencies  # Give this step an ID, so we can reference it later
+      id: cached-poetry-dependencies  # Give this step an ID so we can reference it later
       uses: actions/cache@v3          # Official caching action
       with:
         path: .venv                   # Cache the virtual environment folder
@@ -171,7 +171,7 @@ jobs:
     # STEP: Save coverage report as artifact (for later viewing)
     # -------------------------------------------------------------------------
     - name: Upload coverage report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       # Only upload from one matrix combination to avoid duplicates
       if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
       with:
@@ -223,7 +223,7 @@ jobs:
     # STEP: Upload build artifacts for later use or inspection
     # -------------------------------------------------------------------------
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: dist-files              # Name for the artifact (shown in GitHub UI)
         path: dist/                   # Upload entire dist/ directory
@@ -273,7 +273,7 @@ jobs:
     # STEP: Upload documentation artifacts
     # -------------------------------------------------------------------------
     - name: Upload documentation artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: documentation           # Name for the artifact
         path: docs/build/html/        # Upload built HTML documentation

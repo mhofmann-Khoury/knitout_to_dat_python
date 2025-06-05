@@ -66,7 +66,7 @@ jobs:
     # STEP 2: Set up Python environment
     # -------------------------------------------------------------------------
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.12'    # Use Python 3.12 for building (latest stable)
       # This installs Python and makes it available for subsequent steps
@@ -153,12 +153,12 @@ jobs:
     # STEP 10: Save build artifacts
     # -------------------------------------------------------------------------
     - name: Upload release artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: test-release-dist     # Name for the artifact collection
         path: dist/                 # Upload the entire dist/ directory
         retention-days: 30          # Keep artifacts for 30 days
-      # This saves your built package files, so you can:
+      # This saves your built package files so you can:
       # - Download them later if needed
       # - Inspect exactly what was released
       # - Debug any issues
@@ -184,7 +184,7 @@ jobs:
     # STEP 2: Set up Python for documentation building
     # -------------------------------------------------------------------------
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.12'
 
@@ -219,12 +219,12 @@ jobs:
     # STEP 6: Save documentation as artifact
     # -------------------------------------------------------------------------
     - name: Upload documentation artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: built-documentation    # Name for the artifact collection
         path: docs/build/html/       # Upload the built HTML documentation
         retention-days: 30           # Keep documentation for 30 days
-      # This saves your built documentation, so you can:
+      # This saves your built documentation so you can:
       # - Download and view it locally
       # - Verify it builds correctly
       # - Deploy manually to other hosting services if needed
