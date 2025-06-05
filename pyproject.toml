@@ -1,203 +1,290 @@
+# =============================================================================
+# POETRY BUILD SYSTEM CONFIGURATION
+# =============================================================================
+# This section tells Poetry how to build your package
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=2.0.0,<3.0.0"]  # Poetry build backend version
+build-backend = "poetry.core.masonry.api"  # Use Poetry's build system
 
+# =============================================================================
+# PROJECT METADATA AND CONFIGURATION
+# =============================================================================
+# All the information about your project that will appear on PyPI
 [tool.poetry]
-name = "knitout-to-dat-python"
-version = "0.1.0"
+name = "knitout-to-dat-python"  # Package name on PyPI (use hyphens)
+version = "0.1.0"               # Current version (update this for each release)
 description = "A tool replicating the functionality of the CMU Textile's Lab Knitout-to-Dat Interpreter implemented in Javascript. This python library can convert Knitout files into Shima Seiki DAT files."
-authors = ["Megan Hofmann <m.hofmann@northeastern.edu>"]
-maintainers = ["Megan Hofmann <m.hofmann@northeastern.edu>"]
-license = "MIT"
-readme = "README.md"
-homepage = "https://github.com/mhofmann-Khoury/knitout_to_dat_python"
-repository = "https://github.com/mhofmann-Khoury/knitout_to_dat_python"
-documentation = "https://knitout-to-dat-python.readthedocs.io"
-keywords = ["knitout", "machine knitting", "converter", "act lab"]
-classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Natural Language :: English",
-    "Intended Audience :: Developers",
-    "Intended Audience :: Manufacturing",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
+authors = ["Megan Hofmann <m.hofmann@northeastern.edu>"]       # Primary authors
+maintainers = ["Megan Hofmann <m.hofmann@northeastern.edu>"]   # Current maintainers
+license = "MIT"                 # License type (shows up on PyPI)
+readme = "README.md"            # File to use as long description on PyPI
+homepage = "https://github.com/mhofmann-Khoury/knitout_to_dat_python"     # Project website
+repository = "https://github.com/mhofmann-Khoury/knitout_to_dat_python"   # Source code location
+documentation = "https://knitout-to-dat-python.readthedocs.io"            # Documentation site
+keywords = [                    # Keywords for PyPI search
+    "knitout",
+    "machine knitting",
+    "converter",
+    "act lab"
+]
+classifiers = [                 # PyPI classifiers for categorization
+    "Development Status :: 3 - Alpha",                    # Project maturity
+    "Natural Language :: English",                        # Human language
+    "Intended Audience :: Developers",                    # Who this is for
+    "Intended Audience :: Manufacturing",                 # Industry audience
+    "License :: OSI Approved :: MIT License",             # License classifier
+    "Operating System :: OS Independent",                 # Platform support
+    "Programming Language :: Python :: 3",               # Python support
+    "Programming Language :: Python :: 3.11",            # Specific versions
     "Programming Language :: Python :: 3.12",
-    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering",                    # Subject area
 ]
 
-# Package discovery - tells Poetry where to find your Python packages
+# =============================================================================
+# PACKAGE STRUCTURE CONFIGURATION
+# =============================================================================
+# Tell Poetry where to find your Python packages in your repository
 packages = [
-    {include = "knitout_to_dat_python", from = "src"},
+    {include = "knitout_to_dat_python", from = "src"},  # Package is in src/ directory
+    # This means Poetry will look for src/knitout_to_dat_python/ as your main package
 ]
 
-# Include additional files in the distribution package
+# =============================================================================
+# FILES TO INCLUDE/EXCLUDE IN DISTRIBUTION
+# =============================================================================
+# Include additional files when building the package for distribution
 include = [
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md",
-    "docs/**/*",
-    "examples/**/*.knitout",
-    "tests/fixtures/**/*.dat",
+    "README.md",                    # Project description
+    "LICENSE",                      # License file
+    "CHANGELOG.md",                 # Version history
+    "docs/**/*",                    # All documentation files
+    "examples/**/*.knitout",        # Example input files
+    "tests/fixtures/**/*.dat",      # Test data files needed for testing
 ]
 
-# Exclude files from the distribution package
+# Exclude files from the distribution package (keeps package size down)
 exclude = [
-    "tests/**/*",
-    "docs/_build",
-    "*.pyc",
-    "__pycache__",
-    ".pytest_cache",
-    ".coverage",
-    "htmlcov",
+    "tests/**/*",                   # Don't include test files in distribution
+    "docs/_build",                  # Don't include built documentation
+    "*.pyc",                        # No compiled Python files
+    "__pycache__",                  # No Python cache directories
+    ".pytest_cache",                # No pytest cache
+    ".coverage",                    # No coverage data files
+    "htmlcov",                      # No coverage HTML reports
 ]
 
+# =============================================================================
+# RUNTIME DEPENDENCIES
+# =============================================================================
+# These are packages your project needs to run in production
 [tool.poetry.dependencies]
-python = "^3.11"
-# Add runtime dependencies as you develop
-# click = "^8.1.0"  # For CLI interface
-# pydantic = "^2.0.0"  # For data validation
-# pathlib = "*"  # Built-in, but good to document usage
+python = "^3.11"                # Minimum Python version (allows 3.11.x, 3.12.x, etc.)
+# Add runtime dependencies here as you develop your project:
+# click = "^8.1.0"              # For command-line interfaces
+# pydantic = "^2.0.0"           # For data validation and parsing
+# pathlib = "*"                 # Built-in Python module for file paths
 
+# =============================================================================
+# DEVELOPMENT DEPENDENCIES
+# =============================================================================
+# These packages are only needed during development and testing
 [tool.poetry.group.dev.dependencies]
-# Testing framework and plugins
-pytest = "^7.4.0"
-pytest-cov = "^4.1.0"
-pytest-mock = "^3.11.0"
-pytest-xdist = "^3.3.0"  # Parallel test execution
 
-# Code quality tools
-mypy = "^1.5.0"
+# -------------------------------------------------------------------------
+# TESTING FRAMEWORK AND PLUGINS
+# -------------------------------------------------------------------------
+pytest = "^7.4.0"               # Main testing framework
+pytest-cov = "^4.1.0"           # Coverage measurement plugin for pytest
+pytest-mock = "^3.11.0"         # Mocking utilities for tests
+pytest-xdist = "^3.3.0"         # Parallel test execution (speeds up test runs)
 
-# Documentation
-sphinx = "^7.1.0"
-sphinx-rtd-theme = "^1.3.0"
-myst-parser = "^2.0.0"  # Markdown support in Sphinx
+# -------------------------------------------------------------------------
+# CODE QUALITY AND ANALYSIS TOOLS
+# -------------------------------------------------------------------------
+mypy = "^1.5.0"                 # Static type checker (catches type errors)
+pre-commit = "^3.4.0"           # Git hook framework for code quality checks
 
-# Development tools
-pre-commit = "^3.4.0"
-ipython = "^8.14.0"  # Better REPL for development
-jupyterlab = "^4.0.0"  # For development notebooks
+# -------------------------------------------------------------------------
+# SECURITY AND PACKAGE VALIDATION
+# -------------------------------------------------------------------------
+safety = "^2.3.0"               # Scans dependencies for security vulnerabilities
+twine = "^4.0.0"                # Validates and uploads packages to PyPI
 
-# Windows-specific dependencies
+# -------------------------------------------------------------------------
+# DOCUMENTATION GENERATION
+# -------------------------------------------------------------------------
+sphinx = "^7.1.0"               # Documentation generator
+sphinx-rtd-theme = "^1.3.0"     # Read the Docs theme for Sphinx
+myst-parser = "^2.0.0"          # Allows Markdown files in Sphinx documentation
+
+# -------------------------------------------------------------------------
+# DEVELOPMENT TOOLS AND UTILITIES
+# -------------------------------------------------------------------------
+ipython = "^8.14.0"             # Enhanced interactive Python shell
+jupyterlab = "^4.0.0"           # Notebook environment for development and experimentation
+
+# -------------------------------------------------------------------------
+# PLATFORM-SPECIFIC DEPENDENCIES
+# -------------------------------------------------------------------------
+# Only install on Windows systems (for colored terminal output)
 colorama = {version = "^0.4.6", markers = "sys_platform == 'win32'"}
 
+# =============================================================================
+# DOCUMENTATION-SPECIFIC DEPENDENCIES
+# =============================================================================
+# Separate dependency group for building documentation (allows selective installation)
 [tool.poetry.group.docs.dependencies]
-# Separate group for documentation building
-sphinx = "^7.1.0"
-sphinx-rtd-theme = "^1.3.0"
-sphinx-autodoc-typehints = "^1.24.0"
-myst-parser = "^2.0.0"
+sphinx = "^7.1.0"                    # Documentation generator (main tool)
+sphinx-rtd-theme = "^1.3.0"         # Professional-looking theme
+sphinx-autodoc-typehints = "^1.24.0" # Automatically include type hints in docs
+myst-parser = "^2.0.0"              # Support for Markdown files in documentation
 
+# =============================================================================
+# COMMAND-LINE INTERFACE SCRIPTS
+# =============================================================================
+# Define console scripts that get installed when users install your package
 [tool.poetry.scripts]
-# Command-line interface scripts
-knitout-to-dat = "knitout_to_dat.cli:main"
+# Creates a 'knitout-to-dat' command that users can run from terminal
+# Points to the main() function in your CLI module
+knitout-to-dat = "knitout_to_dat_python.cli:main"
 
+# =============================================================================
+# ADDITIONAL PROJECT URLS
+# =============================================================================
+# Extra links that appear on your PyPI project page
 [tool.poetry.urls]
-# Additional project URLs
-"Bug Tracker" = "https://github.com/mhofmann-Khoury/knitout_to_dat_python/issues"
-"Changelog" = "https://github.com/mhofmann-Khoury/knitout_to_dat_python/blob/main/CHANGELOG.md"
-"Discussions" = "https://github.com/mhofmann-Khoury/knitout_to_dat_python/discussions"
+"Bug Tracker" = "https://github.com/mhofmann-Khoury/knitout_to_dat_python/issues"        # Where to report bugs
+"Changelog" = "https://github.com/mhofmann-Khoury/knitout_to_dat_python/blob/main/CHANGELOG.md"  # Version history
+"Discussions" = "https://github.com/mhofmann-Khoury/knitout_to_dat_python/discussions"   # Community discussions
 
-
-# MyPy configuration - Static type checker
+# =============================================================================
+# MYPY STATIC TYPE CHECKER CONFIGURATION
+# =============================================================================
+# MyPy analyzes your code for type errors without running it
+# This configuration enables strict type checking for better code quality
 [tool.mypy]
-python_version = "3.11"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-disallow_untyped_decorators = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_no_return = true
-warn_unreachable = true
-strict_equality = true
-show_error_codes = true
+python_version = "3.11"              # Target Python version for type checking
+warn_return_any = true               # Warn when function returns 'Any' type
+warn_unused_configs = true           # Warn about unused configuration options
+disallow_untyped_defs = true         # Require type annotations on all functions
+disallow_incomplete_defs = true      # Require complete type annotations (no partial)
+check_untyped_defs = true           # Type-check functions even without annotations
+disallow_untyped_decorators = true   # Require type annotations on decorators
+no_implicit_optional = true          # Don't automatically make arguments Optional
+warn_redundant_casts = true          # Warn about unnecessary type casts
+warn_unused_ignores = true           # Warn about unused # type: ignore comments
+warn_no_return = true               # Warn about functions that don't return
+warn_unreachable = true             # Warn about unreachable code
+strict_equality = true              # Use strict equality checks
+show_error_codes = true             # Show error codes in output (helpful for ignoring specific errors)
 
+# Override settings for specific modules (less strict for tests)
 [[tool.mypy.overrides]]
 module = [
-    "tests.*",
+    "tests.*",                      # Apply to all test files
 ]
-disallow_untyped_defs = false
+disallow_untyped_defs = false      # Allow untyped test functions (tests can be less strict)
 
-# Pytest configuration - Testing framework
+# =============================================================================
+# PYTEST TESTING FRAMEWORK CONFIGURATION
+# =============================================================================
+# Comprehensive configuration for running tests and measuring coverage
 [tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = ["test_*.py", "*_test.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
+# -------------------------------------------------------------------------
+# TEST DISCOVERY SETTINGS
+# -------------------------------------------------------------------------
+testpaths = ["tests"]               # Directory containing test files
+python_files = ["test_*.py", "*_test.py"]    # File naming patterns for tests
+python_classes = ["Test*"]          # Class naming patterns for test classes
+python_functions = ["test_*"]       # Function naming patterns for test functions
+
+# -------------------------------------------------------------------------
+# COMMAND-LINE OPTIONS (applied automatically to every pytest run)
+# -------------------------------------------------------------------------
 addopts = [
-    "--cov=knitout_to_dat_python",
-    "--cov-report=html",
-    "--cov-report=term-missing",
-    "--cov-report=xml",
-    "--strict-markers",
-    "--strict-config",
-    "-ra",
-    "--tb=short"
+    "--cov=knitout_to_dat_python",  # Measure coverage for your main package
+    "--cov-report=html",            # Generate HTML coverage report
+    "--cov-report=term-missing",    # Show missing lines in terminal
+    "--cov-report=xml",             # Generate XML coverage report (for CI/CD)
+    "--strict-markers",             # Require all markers to be defined
+    "--strict-config",              # Strict configuration parsing
+    "-ra",                          # Show summary of all test results except passed
+    "--tb=short"                    # Use short traceback format
 ]
+
+# -------------------------------------------------------------------------
+# CUSTOM TEST MARKERS
+# -------------------------------------------------------------------------
+# Define custom markers for categorizing tests
 markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "integration: marks tests as integration tests",
-    "unit: marks tests as unit tests",
-    "file_io: marks tests that read/write files",
-    "knitout_parser: marks tests for knitout parsing functionality",
-    "dat_generator: marks tests for DAT file generation",
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",           # For time-consuming tests
+    "integration: marks tests as integration tests",                          # For tests that test multiple components
+    "unit: marks tests as unit tests",                                       # For isolated component tests
+    "file_io: marks tests that read/write files",                           # For tests involving file operations
+    "knitout_parser: marks tests for knitout parsing functionality",        # For parser-specific tests
+    "dat_generator: marks tests for DAT file generation",                   # For generator-specific tests
 ]
+
+# -------------------------------------------------------------------------
+# WARNING FILTERS
+# -------------------------------------------------------------------------
+# Control which warnings are shown during test runs
 filterwarnings = [
-    "error",
-    "ignore::UserWarning",
-    "ignore::DeprecationWarning",
+    "error",                        # Treat warnings as errors (strict mode)
+    "ignore::UserWarning",          # Ignore user warnings (often from dependencies)
+    "ignore::DeprecationWarning",   # Ignore deprecation warnings (often from dependencies)
 ]
 
-# Coverage configuration - Code coverage measurement
+# =============================================================================
+# COVERAGE.PY CONFIGURATION
+# =============================================================================
+# Detailed configuration for measuring code coverage
+
+# -------------------------------------------------------------------------
+# COVERAGE MEASUREMENT SETTINGS
+# -------------------------------------------------------------------------
 [tool.coverage.run]
-# Specify which files to measure coverage for
-source = ["src"]
-# Files to exclude from coverage measurement
-omit = [
-    "*/tests/*",
-    "*/test_*",
-    "*/__pycache__/*",
-    "*/site-packages/*",
-    "*/venv/*",
-    "setup.py",
-    "conftest.py",
+source = ["src"]                    # Only measure coverage for source code (not tests)
+omit = [                           # Files to exclude from coverage measurement
+    "*/tests/*",                    # Don't measure coverage of test files themselves
+    "*/test_*",                     # Don't measure coverage of any test files
+    "*/__pycache__/*",              # Ignore Python cache files
+    "*/site-packages/*",            # Ignore installed packages
+    "*/venv/*",                     # Ignore virtual environment
+    "setup.py",                     # Ignore setup script
+    "conftest.py",                  # Ignore pytest configuration
 ]
-# Enable branch coverage (not just line coverage)
-branch = true
+branch = true                       # Enable branch coverage (more comprehensive than line coverage)
 
+# -------------------------------------------------------------------------
+# COVERAGE REPORTING SETTINGS
+# -------------------------------------------------------------------------
 [tool.coverage.report]
-# Exclude lines from coverage report
+# Lines to exclude from coverage analysis (patterns that are hard to test)
 exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "if self.debug:",
-    "if settings.DEBUG",
-    "raise AssertionError",
-    "raise NotImplementedError",
-    "if 0:",
-    "if __name__ == .__main__.:",
-    "class .*\\bProtocol\\):",
-    "@(abc\\.)?abstractmethod",
+    "pragma: no cover",             # Explicit exclusion comment
+    "def __repr__",                 # String representation methods
+    "if self.debug:",               # Debug-only code
+    "if settings.DEBUG",            # Django-style debug code
+    "raise AssertionError",         # Should never be reached
+    "raise NotImplementedError",    # Abstract method placeholders
+    "if 0:",                        # Never-executed debug code
+    "if __name__ == .__main__.:",   # Script entry points
+    "class .*\\bProtocol\\):",      # Protocol classes (typing)
+    "@(abc\\.)?abstractmethod",     # Abstract methods
 ]
-# Fail if coverage falls below this percentage
-fail_under = 80
-# Show missing lines in report
-show_missing = true
-# Skip covered files in report
-skip_covered = false
-# Skip empty files
-skip_empty = true
 
+# Coverage quality settings
+fail_under = 80                     # Fail if coverage drops below 80%
+show_missing = true                 # Show which lines are missing coverage
+skip_covered = false                # Show covered files in report
+skip_empty = true                   # Skip empty files in report
+
+# -------------------------------------------------------------------------
+# COVERAGE OUTPUT FORMATS
+# -------------------------------------------------------------------------
 [tool.coverage.html]
-# Directory for HTML coverage reports
-directory = "htmlcov"
+directory = "htmlcov"               # Directory for HTML coverage reports (open htmlcov/index.html to view)
 
 [tool.coverage.xml]
-# File for XML coverage reports (used by CI/CD)
-output = "coverage.xml"
+output = "coverage.xml"             # XML coverage report file (used by CI/CD and external tools)
