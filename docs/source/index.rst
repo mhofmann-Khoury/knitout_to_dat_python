@@ -17,20 +17,6 @@ Python package for easier integration into Python-based knitting workflows.
    examples
    changelog
 
-Quick Start
------------
-
-Install the package::
-
-    pip install knitout-to-dat-python
-
-Basic usage::
-
-    from knitout_to_dat import KnitoutConverter
-
-    converter = KnitoutConverter("input.ko", "output.dat")
-    converter.convert_to_dat()
-
 Indices and tables
 ==================
 
