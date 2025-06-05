@@ -10,11 +10,14 @@ repos:
       - id: check-merge-conflict      # Catch merge conflict markers
 
   # Type checking with MyPy
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.5.1
+  - repo: local
     hooks:
       - id: mypy
-        additional_dependencies: [types-colorama]  # Add type stubs as needed
-        args: [--config-file=pyproject.toml]
-        exclude: ^(docs/|test/),
+        name: mypy
+        entry: poetry run mypy
+        language: system
+        types: [python]
+        args: [--config-file=pyproject.toml, src/]
+        exclude: ^(docs/|tests/)
         files: ^src/
+        pass_filenames: false

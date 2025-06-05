@@ -102,10 +102,11 @@ jobs:
     # -------------------------------------------------------------------------
     - name: Run mypy type checking
       run: |
-        poetry run mypy src/ --strict
+        poetry run mypy src/ --strict --exclude tests/
       # MyPy performs static type analysis to catch type-related errors
       # --strict enables all optional error checking features
-      # Only checks files in src/ directory (adjust path as needed)
+      # Only checks files in src/ directory (excludes tests)
+      # --exclude tests/ explicitly excludes the tests directory
 
   # ===========================================================================
   # JOB 2: TEST SUITE (Matrix Strategy)

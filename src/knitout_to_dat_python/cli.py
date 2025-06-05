@@ -3,7 +3,7 @@
 import sys
 
 
-def main(args: list | None = None) -> int:
+def main(args: list[str] | None = None) -> int:
     """
     Main entry point for the CLI.
 
