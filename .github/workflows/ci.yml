@@ -259,12 +259,19 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.12'
 
     - name: Install Poetry
-      uses: snok/install-poetry@v1
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install poetry
+
+    - name: Configure Poetry
+      run: |
+        poetry config virtualenvs.create true
+        poetry config virtualenvs.in-project true
 
     # -------------------------------------------------------------------------
     # STEP: Install dependencies INCLUDING documentation dependencies
@@ -281,7 +288,7 @@ jobs:
         poetry run sphinx-build -b html docs/source docs/build/html -W
       # sphinx-build: Main Sphinx command
       # -b html: Build HTML output
-      # docs/source: Source directory (adjust path as needed)
+      # docs/source: Your existing source directory
       # docs/build/html: Output directory
       # -W: Treat warnings as errors (ensures clean documentation)
 
