@@ -103,15 +103,19 @@ jobs:
       # This ensures we have everything needed for testing and building
 
     # -------------------------------------------------------------------------
-    # STEP 6: Run comprehensive test suite
+    # STEP 6: Run comprehensive test suite with unittest
     # -------------------------------------------------------------------------
     - name: Run full test suite
       run: |
-        poetry run pytest --cov=knitout_to_dat_python --cov-report=term-missing -v
+        poetry run coverage run -m unittest discover tests -p "test_*.py" -v
+        poetry run coverage report -m
       # Run all tests with coverage reporting before releasing
-      # --cov=knitout_to_dat_python: Measure coverage for your package
-      # --cov-report=term-missing: Show which lines aren't covered
+      # coverage run: Run unittest with coverage measurement
+      # -m unittest discover: Use unittest's test discovery
+      # tests: Directory containing test files
+      # -p "test_*.py": Pattern to match test files
       # -v: Verbose output showing individual test results
+      # coverage report -m: Show coverage report with missing lines
       # If ANY test fails, the workflow stops here (prevents broken releases)
 
     # -------------------------------------------------------------------------
@@ -243,7 +247,7 @@ jobs:
 #
 # 3. REPOSITORY STRUCTURE:
 #    - docs/source/ directory with Sphinx documentation (optional)
-#    - tests/ directory with pytest tests
+#    - tests/ directory with unittest tests
 #    - src/knitout_to_dat_python/ with your package code
 #
 # 4. TEST PYPI ACCOUNT:

@@ -172,16 +172,20 @@ jobs:
       run: poetry install --without=docs
 
     # -------------------------------------------------------------------------
-    # STEP: Run test suite with coverage reporting
+    # STEP: Run test suite with coverage reporting using unittest
     # -------------------------------------------------------------------------
     - name: Run tests with coverage
       run: |
-        poetry run pytest --cov=src --cov-report=xml --cov-report=term-missing -v
-      # pytest: Python testing framework
-      # --cov=src: Measure code coverage for src/ directory
-      # --cov-report=xml: Generate XML coverage report (for external tools)
-      # --cov-report=term-missing: Show missing lines in terminal output
+        poetry run coverage run -m unittest discover tests -p "test_*.py" -v
+        poetry run coverage report -m
+        poetry run coverage xml
+      # coverage run: Run unittest with coverage measurement
+      # -m unittest discover: Use unittest's test discovery
+      # tests: Directory containing test files
+      # -p "test_*.py": Pattern to match test files
       # -v: Verbose output (show individual test names)
+      # coverage report -m: Show coverage report with missing lines
+      # coverage xml: Generate XML coverage report (for external tools)
 
     # -------------------------------------------------------------------------
     # STEP: Save coverage report as artifact (for later viewing)
@@ -309,8 +313,8 @@ jobs:
 #
 # 1. pyproject.toml with these dev dependencies:
 #    [tool.poetry.group.dev.dependencies]
-#    pytest = "^7.0"
-#    pytest-cov = "^4.0"
+#    coverage = "^7.0"
+#    unittest-xml-reporting = "^3.0"
 #    mypy = "^1.0"
 #    pre-commit = "^3.0"
 #    twine = "^4.0"
@@ -320,7 +324,7 @@ jobs:
 #
 # 2. .pre-commit-config.yaml in your repo root
 #
-# 3. tests/ directory with your pytest tests
+# 3. tests/ directory with your unittest tests
 #
 # 4. docs/source/ directory with Sphinx documentation
 #

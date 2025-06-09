@@ -68,7 +68,7 @@ jobs:
       # - Does NOT change your pyproject.toml version requirements
 
     # -------------------------------------------------------------------------
-    # STEP 5: Install updated dependencies and run tests
+    # STEP 5: Install updated dependencies and run tests with unittest
     # -------------------------------------------------------------------------
     - name: Install updated dependencies
       run: |
@@ -76,9 +76,15 @@ jobs:
 
     - name: Run tests with updated dependencies
       run: |
-        poetry run pytest -v
-      # Run your test suite to make sure the updated dependencies don't break anything
-      # -v means verbose output (shows individual test names)
+        poetry run coverage run -m unittest discover tests -p "test_*.py" -v
+        poetry run coverage report -m
+      # Run your test suite using unittest to make sure the updated dependencies don't break anything
+      # coverage run: Run unittest with coverage measurement
+      # -m unittest discover: Use unittest's test discovery
+      # tests: Directory containing test files
+      # -p "test_*.py": Pattern to match test files
+      # -v: Verbose output (shows individual test names)
+      # coverage report -m: Show coverage report with missing lines
 
     # -------------------------------------------------------------------------
     # STEP 6: Check for security vulnerabilities (OPTIONAL)
@@ -104,7 +110,7 @@ jobs:
 
           ## What Changed
           - Updated Poetry lock file (`poetry.lock`) with latest compatible versions
-          - All existing tests pass with the updated dependencies
+          - All existing tests pass with the updated dependencies using unittest
           - Security vulnerability check completed successfully
 
           ## What You Should Do
@@ -129,7 +135,7 @@ jobs:
 #    [tool.poetry.group.dev.dependencies]
 #    safety = "^2.0"
 #
-# 3. You need working tests that run with 'poetry run pytest'
+# 3. You need working tests that run with unittest discovery
 #
 # 4. The GITHUB_TOKEN is automatically provided - no setup needed
 # =============================================================================

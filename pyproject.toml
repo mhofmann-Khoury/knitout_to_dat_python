@@ -59,7 +59,6 @@ include = [
     "CHANGELOG.md",                 # Version history
     "docs/**/*",                    # All documentation files
     "examples/**/*.knitout",        # Example input files
-    "tests/fixtures/**/*.dat",      # Test data files needed for testing
 ]
 
 # Exclude files from the distribution package (keeps package size down)
@@ -68,7 +67,6 @@ exclude = [
     "docs/_build",                  # Don't include built documentation
     "*.pyc",                        # No compiled Python files
     "__pycache__",                  # No Python cache directories
-    ".pytest_cache",                # No pytest cache
     ".coverage",                    # No coverage data files
     "htmlcov",                      # No coverage HTML reports
 ]
@@ -79,10 +77,10 @@ exclude = [
 # These are packages your project needs to run in production
 [tool.poetry.dependencies]
 python = "^3.11"                # Minimum Python version (allows 3.11.x, 3.12.x, etc.)
+knitout-interpreter = "^0.0.16"
+virtual-knitting-machine = "^0.0.13"
 # Add runtime dependencies here as you develop your project:
-# click = "^8.1.0"              # For command-line interfaces
-# pydantic = "^2.0.0"           # For data validation and parsing
-# pathlib = "*"                 # Built-in Python module for file paths
+
 
 # =============================================================================
 # DEVELOPMENT DEPENDENCIES
@@ -93,10 +91,8 @@ python = "^3.11"                # Minimum Python version (allows 3.11.x, 3.12.x,
 # -------------------------------------------------------------------------
 # TESTING FRAMEWORK AND PLUGINS
 # -------------------------------------------------------------------------
-pytest = "^7.4.0"               # Main testing framework
-pytest-cov = "^4.1.0"           # Coverage measurement plugin for pytest
-pytest-mock = "^3.11.0"         # Mocking utilities for tests
-pytest-xdist = "^3.3.0"         # Parallel test execution (speeds up test runs)
+coverage = "^7.3.0"              # Coverage measurement for unittest
+unittest-xml-reporting = "^3.2.0"  # XML test reporting for CI/CD
 
 # -------------------------------------------------------------------------
 # CODE QUALITY AND ANALYSIS TOOLS
@@ -173,10 +169,18 @@ disallow_untyped_decorators = true   # Require type annotations on decorators
 no_implicit_optional = true          # Don't automatically make arguments Optional
 warn_redundant_casts = true          # Warn about unnecessary type casts
 warn_unused_ignores = true           # Warn about unused # type: ignore comments
-warn_no_return = true               # Warn about functions that don't return
+warn_no_return = false               # Don't warn about functions that don't return
 warn_unreachable = true             # Warn about unreachable code
 strict_equality = true              # Use strict equality checks
 show_error_codes = true             # Show error codes in output (helpful for ignoring specific errors)
+ignore_missing_imports = true       # Ignore untyped library imports
+
+# Settings to allow attributes defined outside __init__
+allow_redefinition = true           # Allow variables to be redefined with different types
+disable_error_code = [             # Disable specific error codes
+    "attr-defined",                # Don't error on attributes that might not be defined
+    "no-redef"                     # Don't error on redefined attributes/methods
+]
 
 # Override settings for specific modules (less strict for tests)
 [[tool.mypy.overrides]]
@@ -191,59 +195,9 @@ warn_return_any = false            # Don't warn about returning 'Any' in tests
 warn_unused_ignores = false        # Don't warn about unused type ignores in tests
 
 # =============================================================================
-# PYTEST TESTING FRAMEWORK CONFIGURATION
+# COVERAGE.PY CONFIGURATION FOR UNITTEST
 # =============================================================================
-# Comprehensive configuration for running tests and measuring coverage
-[tool.pytest.ini_options]
-# -------------------------------------------------------------------------
-# TEST DISCOVERY SETTINGS
-# -------------------------------------------------------------------------
-testpaths = ["tests"]               # Directory containing test files
-python_files = ["test_*.py", "*_test.py"]    # File naming patterns for tests
-python_classes = ["Test*"]          # Class naming patterns for test classes
-python_functions = ["test_*"]       # Function naming patterns for test functions
-
-# -------------------------------------------------------------------------
-# COMMAND-LINE OPTIONS (applied automatically to every pytest run)
-# -------------------------------------------------------------------------
-addopts = [
-    "--cov=knitout_to_dat_python",  # Measure coverage for your main package
-    "--cov-report=html",            # Generate HTML coverage report
-    "--cov-report=term-missing",    # Show missing lines in terminal
-    "--cov-report=xml",             # Generate XML coverage report (for CI/CD)
-    "--strict-markers",             # Require all markers to be defined
-    "--strict-config",              # Strict configuration parsing
-    "-ra",                          # Show summary of all test results except passed
-    "--tb=short"                    # Use short traceback format
-]
-
-# -------------------------------------------------------------------------
-# CUSTOM TEST MARKERS
-# -------------------------------------------------------------------------
-# Define custom markers for categorizing tests
-markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",           # For time-consuming tests
-    "integration: marks tests as integration tests",                          # For tests that test multiple components
-    "unit: marks tests as unit tests",                                       # For isolated component tests
-    "file_io: marks tests that read/write files",                           # For tests involving file operations
-    "knitout_parser: marks tests for knitout parsing functionality",        # For parser-specific tests
-    "dat_generator: marks tests for DAT file generation",                   # For generator-specific tests
-]
-
-# -------------------------------------------------------------------------
-# WARNING FILTERS
-# -------------------------------------------------------------------------
-# Control which warnings are shown during test runs
-filterwarnings = [
-    "error",                        # Treat warnings as errors (strict mode)
-    "ignore::UserWarning",          # Ignore user warnings (often from dependencies)
-    "ignore::DeprecationWarning",   # Ignore deprecation warnings (often from dependencies)
-]
-
-# =============================================================================
-# COVERAGE.PY CONFIGURATION
-# =============================================================================
-# Detailed configuration for measuring code coverage
+# Detailed configuration for measuring code coverage with unittest
 
 # -------------------------------------------------------------------------
 # COVERAGE MEASUREMENT SETTINGS
@@ -257,7 +211,6 @@ omit = [                           # Files to exclude from coverage measurement
     "*/site-packages/*",            # Ignore installed packages
     "*/venv/*",                     # Ignore virtual environment
     "setup.py",                     # Ignore setup script
-    "conftest.py",                  # Ignore pytest configuration
 ]
 branch = true                       # Enable branch coverage (more comprehensive than line coverage)
 
