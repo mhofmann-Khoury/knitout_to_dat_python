@@ -59,6 +59,7 @@ include = [
     "CHANGELOG.md",                 # Version history
     "docs/**/*",                    # All documentation files
     "examples/**/*.knitout",        # Example input files
+    "src/**/**/resources/**/*", # Include all resources
 ]
 
 # Exclude files from the distribution package (keeps package size down)
@@ -79,6 +80,7 @@ exclude = [
 python = "^3.11"                # Minimum Python version (allows 3.11.x, 3.12.x, etc.)
 knitout-interpreter = "^0.0.16"
 virtual-knitting-machine = "^0.0.13"
+knit-script = "^0.1.27"
 # Add runtime dependencies here as you develop your project:
 
 
@@ -117,7 +119,6 @@ myst-parser = "^2.0.0"          # Allows Markdown files in Sphinx documentation
 # DEVELOPMENT TOOLS AND UTILITIES
 # -------------------------------------------------------------------------
 ipython = "^8.14.0"             # Enhanced interactive Python shell
-jupyterlab = "^4.0.0"           # Notebook environment for development and experimentation
 
 # -------------------------------------------------------------------------
 # PLATFORM-SPECIFIC DEPENDENCIES
