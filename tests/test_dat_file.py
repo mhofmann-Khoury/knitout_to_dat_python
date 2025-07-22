@@ -85,3 +85,7 @@ class TestDat_File(TestCase):
     def test_gauged_sheets(self):
         self.make_comparison_dats('gauged_sheets.ks', 'gauged_sheets',
                                   c=1, pattern_width=10, pattern_height=10)
+
+    def test_splits(self):
+        self.make_comparison_dats('splits.ks', 'splits',
+                                  c=1, pattern_width=10, pattern_height=10)

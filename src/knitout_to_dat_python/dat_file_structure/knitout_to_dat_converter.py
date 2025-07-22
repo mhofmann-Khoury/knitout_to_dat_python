@@ -116,7 +116,6 @@ class Knitout_to_Dat_Converter:
 
         # Initialize properties that will be set during processing
         self.raster_data: list[list[int]] = []
-        self.passes: list = []  # Will be defined later when we implement Pass class
 
     @property
     def dat_width(self) -> int:
@@ -542,27 +541,6 @@ class Knitout_to_Dat_Converter:
         self.create_empty_raster(width, height)
         self.write_dat_file()
 
-    def get_file_info(self) -> dict:
-        """
-        Get information about the current DAT file configuration.
-
-        Returns:
-            Dictionary with file information
-        """
-        return {
-            'knitout_file': self.knitout,
-            'dat_filename': self.dat_filename,
-            'width': self.dat_width,
-            'height': self.dat_height,
-            'raster_size': len(self.raster_data) * len(self.raster_data[0]) if self.raster_data else 0,
-            'palette_colors': len(self.PALETTE_BYTES) // 3,
-            'file_exists': os.path.exists(self.dat_filename),
-            'knitout_parsed': len(self.knitout_lines) > 0,
-            'min_slot': self.leftmost_slot,
-            'max_slot': self.rightmost_slot,
-            'position_offset': self.position_offset
-        }
-
     def process_knitout_to_dat(self) -> None:
         """
         Complete workflow: parse knitout file and create DAT file.
@@ -586,12 +564,6 @@ def main() -> None:
     dat_file = Knitout_to_Dat_Converter("example.knitout", "test_output.dat")
     dat_file.create_empty_dat(width=60, height=15)
 
-    # Display file information
-    info = dat_file.get_file_info()
-    print("\nEmpty DAT File Information:")
-    for key, value in info.items():
-        print(f"  {key}: {value}")
-
     # Example 2: Process a real knitout file (if it exists)
     print("\n=== Processing Knitout File ===")
     knitout_file = "sample.knitout"  # Replace with actual file path
@@ -605,12 +577,6 @@ def main() -> None:
             dat_header_info = dat_file2.get_dat_header_info()
             print("\nHeader Information:")
             for key, value in dat_header_info.items():
-                print(f"  {key}: {value}")
-
-            # Display final file information
-            final_info = dat_file2.get_file_info()
-            print("\nFinal DAT File Information:")
-            for key, value in final_info.items():
                 print(f"  {key}: {value}")
 
         except Exception as e:

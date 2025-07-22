@@ -130,10 +130,10 @@ class Knitout_Executer_With_Kickbacks(Knitout_Executer):
     """
     STOPPING_DISTANCE: int = 10
 
-    def __init__(self, instructions: list[Knitout_Line], knitting_machine: Knitting_Machine, accepted_error_types: list | None = None):
+    def __init__(self, instructions: list[Knitout_Line], knitting_machine: Knitting_Machine):
         self.process: list[Knitout_Line | Carriage_Pass] = []
         self.executed_instructions: list[Knitout_Line] = []
-        super().__init__(instructions, knitting_machine, accepted_error_types)
+        super().__init__(instructions, knitting_machine)
         self.process = _fix_process_for_all_needle_rack(self.process)
         self.kickback_machine: Knitting_Machine = Knitting_Machine(self.knitting_machine.machine_specification)
         # track the last kicking direction of each carrier. None implies that a carrier has not been kicked since it was last used.
