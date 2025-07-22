@@ -11,6 +11,7 @@ from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_D
 from virtual_knitting_machine.machine_components.needles.Needle import Needle
 from virtual_knitting_machine.machine_components.yarn_management.Yarn_Carrier_Set import Yarn_Carrier_Set
 
+from knitout_to_dat_python.dat_file_structure.dat_sequences.startup_sequence import Miss_Carriage_Pass
 from knitout_to_dat_python.kickback_injection.fixed_knitout_execution import Knitout_Executer
 
 
@@ -333,8 +334,7 @@ class Knitout_Executer_With_Kickbacks(Knitout_Executer):
         """
         conflict_carriers: dict[int, int] = {}  # carrier ids keyed to current conflicting position.
         for carrier in self.kickback_machine.carrier_system.active_carriers:  # check only the active carriers for conflicts
-            if carrier.carrier_id not in exempt_carriers:
-                assert carrier.position is not None
+            if carrier.carrier_id not in exempt_carriers and carrier.position is not None:
                 if leftmost_conflict < carrier.position < rightmost_conflict:
                     conflict_carriers[carrier.carrier_id] = carrier.position
         return conflict_carriers
@@ -374,6 +374,10 @@ class Knitout_Executer_With_Kickbacks(Knitout_Executer):
             False otherwise.
         """
         if self._last_carrier_movement is None:
+            return False
+        last_movement_position = self._last_carrier_movement.last_needle.position
+        if ((self._last_carrier_movement.direction is Carriage_Pass_Direction.Leftward and last_movement_position <= kick.needle.position)
+                or (self._last_carrier_movement.direction is Carriage_Pass_Direction.Rightward and last_movement_position >= kick.needle.position)):
             return False
         left_conflict, right_conflict = self._kick_conflict_zone(kick)
         if kick.carrier_set == self._last_carrier_movement.carrier_set:
@@ -454,7 +458,7 @@ class Knitout_Executer_With_Kickbacks(Knitout_Executer):
                     _update_last_carriage_pass(add_on_cp)
                     _update_last_executed_instruction(add_on)
                 for kick in kicks_before_cp:
-                    kick_cp = Carriage_Pass(kick, rack=0, all_needle_rack=False)
+                    kick_cp = Miss_Carriage_Pass(kick, rack=0, all_needle_rack=False)
                     _add_carrier_movement(kick_cp)
                     for cid in kick.carrier_set.carrier_ids:
                         self._kicked_carriers[cid] = kick.direction
