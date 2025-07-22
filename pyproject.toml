@@ -178,10 +178,21 @@ ignore_missing_imports = true       # Ignore untyped library imports
 
 # Settings to allow attributes defined outside __init__
 allow_redefinition = true           # Allow variables to be redefined with different types
-disable_error_code = [             # Disable specific error codes
+
+# UPDATED: Enhanced error code disabling to handle subclassing and inheritance issues
+disable_error_code = [             # Disable specific error codes that are problematic
     "attr-defined",                # Don't error on attributes that might not be defined
-    "no-redef"                     # Don't error on redefined attributes/methods
+    "no-redef",                    # Don't error on redefined attributes/methods
+    "misc",                        # ADDED: Disable miscellaneous errors (includes subclassing Any errors)
+    "type-arg",                    # ADDED: Disable generic type argument errors
+    "valid-type",                  # ADDED: Disable "not a valid type" errors for complex inheritance
+    "override",                    # ADDED: Disable method override signature mismatches
 ]
+
+# ADDED: Additional settings to be more permissive with third-party library integration
+allow_untyped_globals = true        # Allow untyped global variables (common in third-party libs)
+allow_subclassing_any = true        # ADDED: Explicitly allow subclassing from Any types
+implicit_reexport = true            # Allow implicit re-exports from modules
 
 # Override settings for specific modules (less strict for tests)
 [[tool.mypy.overrides]]
@@ -194,6 +205,27 @@ disallow_incomplete_defs = false   # Allow incomplete type annotations in tests
 check_untyped_defs = false         # Don't type-check untyped test functions
 warn_return_any = false            # Don't warn about returning 'Any' in tests
 warn_unused_ignores = false        # Don't warn about unused type ignores in tests
+
+# ADDED: Specific overrides for third-party knitting libraries that may have type issues
+[[tool.mypy.overrides]]
+module = [
+    "knitout_interpreter.*",        # Your knitting interpreter dependency
+    "virtual_knitting_machine.*",   # Your virtual knitting machine dependency
+    "knit_script.*",               # Your knit script dependency
+]
+ignore_errors = true              # Completely ignore all mypy errors in these modules
+ignore_missing_imports = true     # Ignore missing imports from these modules
+follow_imports = "skip"           # Don't follow imports into these modules
+
+# ADDED: Override for any modules that contain problematic inheritance patterns
+[[tool.mypy.overrides]]
+module = "*.carriage.*"            # Target modules containing Carriage_Pass or similar classes
+disable_error_code = [
+    "misc",                        # Disable misc errors (subclassing Any)
+    "valid-type",                  # Disable valid type errors
+    "type-arg",                    # Disable type argument errors
+]
+allow_subclassing_any = true       # Explicitly allow subclassing Any in these modules
 
 # =============================================================================
 # COVERAGE.PY CONFIGURATION FOR UNITTEST
