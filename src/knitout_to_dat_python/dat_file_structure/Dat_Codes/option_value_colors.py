@@ -27,6 +27,23 @@ class Drop_Sinker_Color(Enum):
         return int(self)
 
 
+class Amiss_Split_Hook_Color(Enum):
+    """Enumeration of color codes for the Amiss_Split_Hook option line."""
+    Split_Hook = 10
+
+    def __str__(self) -> str:
+        return self.name
+
+    def __repr__(self) -> str:
+        return str(self)
+
+    def __int__(self) -> int:
+        return self.value
+
+    def __hash__(self) -> int:
+        return int(self)
+
+
 class Hook_Operation_Color(Enum):
     """Enumeration of yarn-inserting-hook operation colors."""
     No_Hook_Operation = 0

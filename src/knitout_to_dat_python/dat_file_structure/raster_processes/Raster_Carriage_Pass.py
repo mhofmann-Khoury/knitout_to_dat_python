@@ -4,6 +4,7 @@ Based on the original knitout-to-dat.js raster generation logic.
 """
 
 from knitout_interpreter.knitout_execution_structures.Carriage_Pass import Carriage_Pass
+from knitout_interpreter.knitout_operations.knitout_instruction import Knitout_Instruction_Type
 from virtual_knitting_machine.Knitting_Machine_Specification import Knitting_Machine_Specification
 from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import Carriage_Pass_Direction
 from virtual_knitting_machine.machine_components.needles.Needle import Needle
@@ -11,7 +12,7 @@ from virtual_knitting_machine.machine_components.needles.Needle import Needle
 from knitout_to_dat_python.dat_file_structure.Dat_Codes.operation_colors import Operation_Color, get_operation_color
 from knitout_to_dat_python.dat_file_structure.Dat_Codes.option_lines import Left_Option_Lines, Right_Option_Lines
 from knitout_to_dat_python.dat_file_structure.Dat_Codes.option_value_colors import Drop_Sinker_Color, Hook_Operation_Color, Knit_Cancel_Color, Rack_Direction_Color, Rack_Pitch_Color, \
-    get_carriage_pass_direction_color, Presser_Setting_Color, carriers_to_int
+    get_carriage_pass_direction_color, Presser_Setting_Color, carriers_to_int, Amiss_Split_Hook_Color
 from knitout_to_dat_python.dat_file_structure.dat_file_color_codes import IGNORE_LINK_PROCESS, \
     PAUSE_CARRIAGE_PASS, STOPPING_MARK, OPTION_LINE_COUNT
 
@@ -151,6 +152,21 @@ class Raster_Carriage_Pass:
         self._set_direction_options()
         self._set_drop_sinker_option()
         self._set_knit_cancel_option()
+        self._set_amiss_split_hook_options()
+
+    @property
+    def has_splits(self) -> bool:
+        """
+        Returns: True if the carriage pass has splits. False otherwise.
+        """
+        return bool(self.carriage_pass.contains_instruction_type(Knitout_Instruction_Type.Split))
+
+    def _set_amiss_split_hook_options(self) -> None:
+        """
+        Sets the amiss_split_hook options based on carriage pass instruction types.
+        """
+        if self.has_splits:
+            self.left_option_line_settings[Left_Option_Lines.AMiss_Split_Flag] = int(Amiss_Split_Hook_Color.Split_Hook)
 
     def _set_drop_sinker_option(self) -> None:
         """

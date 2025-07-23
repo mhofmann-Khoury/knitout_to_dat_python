@@ -11,7 +11,7 @@ class Left_Option_Lines(Enum):
     Knit_Speed = 5
     Transfer_Speed = 6
     Pause_Option = 7
-    AMiss_Flag = 12
+    AMiss_Split_Flag = 12
     Transfer_Type = 13
 
     def __str__(self) -> str:
