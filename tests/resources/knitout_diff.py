@@ -22,7 +22,7 @@ from knitout_interpreter.knitout_operations.Rack_Instruction import Rack_Instruc
 from knitout_interpreter.knitout_operations.carrier_instructions import Yarn_Carrier_Instruction
 from knitout_interpreter.knitout_operations.knitout_instruction import Knitout_Instruction, Knitout_Instruction_Type
 from knitout_interpreter.knitout_operations.needle_instructions import Needle_Instruction, Xfer_Instruction
-from virtual_knitting_machine.machine_components.needles.Needle import Needle
+from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import Carriage_Pass_Direction
 
 
 class DiffType(Enum):
@@ -157,49 +157,17 @@ class Knitout_Difference_Block_Tag(Enum):
 class Knitout_Difference_Block:
     """Class for tracking a block of differences between 2 knitout files."""
 
-    def __init__(self, difference_operation: DiffType, tag: Knitout_Difference_Block_Tag | str, lines1: list[Knitout_Diff_Line], lines2: list[Knitout_Diff_Line]):
-        self.difference_operation: DiffType = difference_operation
+    def __init__(self, tag: Knitout_Difference_Block_Tag | str, lines1: list[Knitout_Diff_Line], lines2: list[Knitout_Diff_Line],
+                 start_1: int, end_1: int, start_2: int, end_2: int):
+        self.end_2: int = end_2
+        self.start_2: int = start_2
+        self.end_1: int = end_1
+        self.start_1: int = start_1
         if isinstance(tag, str):
             tag = Knitout_Difference_Block_Tag(tag)
         self.change_type: Knitout_Difference_Block_Tag = tag
         self.lines1: list[Knitout_Diff_Line] = lines1
         self.lines2: list[Knitout_Diff_Line] = lines2
-
-    @property
-    def line_1_start(self) -> int | None:
-        """
-        Returns: The line number from the first knitout file of the first line in this difference block.
-        """
-        if len(self.lines1) == 0:
-            return None
-        return self.lines1[0].line_number
-
-    @property
-    def line_2_start(self) -> int | None:
-        """
-        Returns: The line number from the second knitout file of the first line in this difference block.
-        """
-        if len(self.lines2) == 0:
-            return None
-        return self.lines2[0].line_number
-
-    @property
-    def line_1_end(self) -> int | None:
-        """
-        Returns: The line number from the first knitout file of the last line in this difference block.
-        """
-        if len(self.lines1) == 0:
-            return None
-        return self.lines1[-1].line_number
-
-    @property
-    def line_2_end(self) -> int | None:
-        """
-        Returns: The line number from the second knitout file of the last line in this difference block.
-        """
-        if len(self.lines2) == 0:
-            return None
-        return self.lines2[-1].line_number
 
     def is_equivalent_all_needle(self) -> bool:
         """
@@ -247,9 +215,9 @@ class Knitout_Difference_Block:
 
     def __str__(self) -> str:
         if self.change_type is Knitout_Difference_Block_Tag.insert or self.change_type is Knitout_Difference_Block_Tag.delete:
-            return f"{self.change_type} Lines {self.line_1_start}:{self.line_1_end} at {self.line_2_start}:{self.line_2_end}"
+            return f"{self.change_type} Lines {self.start_1}:{self.end_1} at {self.start_2}:{self.end_2}"
         else:
-            return f"{self.change_type} Lines {self.line_1_start}:{self.line_1_end} with {self.line_2_start}:{self.line_2_end}"
+            return f"{self.change_type} Lines {self.start_1}:{self.end_1} with {self.start_2}:{self.end_2}"
 
     def __repr__(self) -> str:
         return str(self)
@@ -262,7 +230,7 @@ class Knitout_Difference_Block:
         Each block ends at a set of "------"
 
         """
-        report = [f"@@ {self.line_1_start}:{self.line_1_end} and {self.line_2_start}:{self.line_2_end}@@"]
+        report = [f"@@ {self.start_1}:{self.end_1} and {self.start_2}:{self.end_2}@@"]
         if self.change_type is Knitout_Difference_Block_Tag.insert:
             left_mod = "+"
             right_mod = "-"
@@ -295,31 +263,20 @@ class Knitout_Difference_Block:
         return report
 
     @property
-    def only_comment_differences(self) -> list[None | tuple[str | None, str | None]] | None:
+    def can_be_rearranged(self) -> bool:
         """
-        Returns:
-            None if there are no comment-only differences between lines in the block;
-            Otherwise, return a list of tuple comment differences for each line or None if two lines do not have this difference.
-        """
-        if self.change_type is not Knitout_Difference_Block_Tag.replace:
-            return None
-        comment_differences: list[None | tuple[str | None, str | None]] = []
-        for l1, l2 in zip(self.lines1, self.lines2):
-            if l1.comment != l2.comment:
-                comment_differences.append((l1.comment, l2.comment))
-            else:
-                comment_differences.append(None)
-        if any(d is not None for d in comment_differences):
-            return comment_differences
-        else:
-            return None
-
-    @property
-    def re_arrangeable(self) -> bool:
-        """
+        Given that the block only contains one carriage pass of instructions on either side,
+            this implies that the block could be an insignificant difference.
+            If the block is all xfers, this is in significant because the xfers will be coordinated by the machine.
+            If the block is knitting operations in an all-needle-knit pattern, then it is insignificant.
         Returns:
             True if the lines (ignoring comments) could be rearranged to the same result.
         """
+        if (self.change_type is Knitout_Difference_Block_Tag.replace  # must be set as replacement
+                and len(self.lines1) != len(self.lines2) and  # Must be the same size
+                any(not isinstance(l.instruction, Needle_Instruction) for l in self.lines1) and
+                any(not isinstance(l.instruction, Needle_Instruction) for l in self.lines2)):
+            return False  # Non-Needle instructions cannot be rearranged to be equivalent.
         normalized_lines_1 = set(l.get_normalized_string(ignore_comments=True) for l in self.lines1)
         normalized_lines_2 = set(l.get_normalized_string(ignore_comments=True) for l in self.lines2)
         symmetric_difference = normalized_lines_1.symmetric_difference(normalized_lines_2)
@@ -334,8 +291,8 @@ class Knitout_Difference_Block:
         """
         if self.change_type is Knitout_Difference_Block_Tag.equal:
             return False  # Equal diffs means there is no difference, let alone a significant difference.
-        elif self.change_type is Knitout_Difference_Block_Tag.replace:  # could be xfer or all-needle rearrangement
-            if self.is_transfer_only_block() and self.re_arrangeable:
+        elif self.can_be_rearranged:  # could be xfer or all-needle rearrangement
+            if self.is_transfer_only_block():
                 return False  # This is a block of re_arrangeable transfers.
             elif self.is_equivalent_all_needle():
                 return False
@@ -353,15 +310,6 @@ class Knitout_Difference_Block:
         non_xfers_1 = any(isinstance(line, Xfer_Instruction) for line in self.lines1)
         non_xfers_2 = any(isinstance(line, Xfer_Instruction) for line in self.lines2)
         return not non_xfers_1 and not non_xfers_2
-
-    def get_xfers(self) -> set[tuple[Needle, Needle]]:
-        """
-        Returns:
-            Set of transferred needle pairs for all transfer operations in this block.
-        """
-        xfers = set((line.instruction.needle, line.instruction.needle_2) for line in self.lines1 if isinstance(line.instruction, Xfer_Instruction))
-        xfers.update((line.instruction.needle, line.instruction.needle_2) for line in self.lines2 if isinstance(line.instruction, Xfer_Instruction))
-        return xfers
 
 
 class Knitout_Diff_Result:
@@ -406,7 +354,7 @@ class Knitout_Diff_Result:
         for block in self.operation_diffs:
             if block.is_significant:
                 self.significant_diffs.append(block)
-            elif block.is_transfer_only_block() and block.re_arrangeable:
+            elif block.is_transfer_only_block() and block.can_be_rearranged:
                 self.transfer_order_diffs.append(block)
             elif block.is_equivalent_all_needle():
                 self.all_needle_order_diffs.append(block)
@@ -602,7 +550,9 @@ class KnitoutDiffer:
         blocks = self._block_operations(ops, block_types)
         reduced_rack_blocks = self._reduce_racks(blocks)
         merged_blocks = self._merge_blocks(reduced_rack_blocks)
-        return merged_blocks
+        direction_blocks = self._block_operations_by_direction(merged_blocks)
+        rack_reduced_blocks = self._clear_end_racks(direction_blocks)
+        return rack_reduced_blocks
 
     @staticmethod
     def _block_operations(ops: list[Knitout_Diff_Line], block_types: set[Knitout_Instruction_Type] | None = None) -> list[list[Knitout_Diff_Line]]:
@@ -627,6 +577,52 @@ class KnitoutDiffer:
         return op_blocks
 
     @staticmethod
+    def _clear_end_racks(op_blocks: list[list[Knitout_Diff_Line]]) -> list[list[Knitout_Diff_Line]]:
+        i = 0
+        clean_blocks: list[list[Knitout_Diff_Line]] = []
+        for op_block in reversed(op_blocks):
+            if isinstance(op_block[-1].instruction, Needle_Instruction):
+                break  # found some needle operations that depend on prior racks
+            i -= 1
+            if op_block[0].operation is not Knitout_Instruction_Type.Rack:  # Not a rack block so add it to the beginning of the clean blocks
+                clean_blocks.insert(0, op_block)
+        full_clean_blocks: list[list[Knitout_Diff_Line]] = op_blocks[:i]
+        full_clean_blocks.extend(clean_blocks)
+        return full_clean_blocks
+
+    @staticmethod
+    def _block_operations_by_direction(op_blocks: list[list[Knitout_Diff_Line]]) -> list[list[Knitout_Diff_Line]]:
+        blocks_by_direction: list[list[Knitout_Diff_Line]] = []
+
+        def _get_op_direction(diff_line: Knitout_Diff_Line) -> None | Carriage_Pass_Direction:
+            if isinstance(diff_line.instruction, Needle_Instruction) and diff_line.instruction.has_direction:
+                return diff_line.instruction.direction
+            else:
+                return None
+
+        for op_block in op_blocks:
+            needles_in_block = set()
+            first_op = op_block[0]
+            current_direction = _get_op_direction(first_op)
+            if isinstance(first_op.instruction, Needle_Instruction):
+                needles_in_block.add(first_op.instruction.needle)
+            current_block = [first_op]
+            for op in op_block[1:]:
+                op_dir = _get_op_direction(op)
+                if (op_dir != current_direction or  # The direction changed, so switch to new block
+                        (isinstance(op.instruction, Needle_Instruction) and op.instruction.needle in needles_in_block)):  # A needle re-occurred, so this is a new carriage pass.
+                    blocks_by_direction.append(current_block)
+                    current_block = [op]
+                    current_direction = op_dir
+                    needles_in_block = set()
+                    if isinstance(op.instruction, Needle_Instruction):
+                        needles_in_block.add(op.instruction.needle)
+                else:
+                    current_block.append(op)
+            blocks_by_direction.append(current_block)
+        return blocks_by_direction
+
+    @staticmethod
     def _reduce_racks(op_blocks: list[list[Knitout_Diff_Line]]) -> list[list[Knitout_Diff_Line]]:
         current_rack = 0.0
         reduced_rack_blocks: list[list[Knitout_Diff_Line]] = []
@@ -637,10 +633,7 @@ class KnitoutDiffer:
                 block_rack = last_rack.rack_value
                 if block_rack != current_rack:
                     current_rack = block_rack
-                    if len(reduced_rack_blocks) > 0 and reduced_rack_blocks[-1][-1].operation is not Knitout_Instruction_Type.Xfer:  # add back into last block
-                        reduced_rack_blocks[-1].append(block[-1])
-                    else:  # can't extend last block, so add a new one with just the final rack.
-                        reduced_rack_blocks.append([block[-1]])
+                    reduced_rack_blocks.append([block[-1]])
             else:
                 reduced_rack_blocks.append(block)
         if len(reduced_rack_blocks) > 0 and reduced_rack_blocks[-1][-1].operation is Knitout_Instruction_Type.Rack:
@@ -652,8 +645,8 @@ class KnitoutDiffer:
         merged_blocks: list[list[Knitout_Diff_Line]] = [op_blocks[0]]
         for block in op_blocks[1:]:
             both_xfers = merged_blocks[-1][0].operation is Knitout_Instruction_Type.Xfer and block[0].operation is Knitout_Instruction_Type.Xfer
-            neither_xfers = merged_blocks[-1][0].operation is not Knitout_Instruction_Type.Xfer and block[0].operation is not Knitout_Instruction_Type.Xfer
-            if both_xfers or neither_xfers:
+            both_racks = merged_blocks[-1][0].operation is Knitout_Instruction_Type.Rack and block[0].operation is Knitout_Instruction_Type.Rack
+            if both_xfers or both_racks:
                 merged_blocks[-1].extend(block)
             else:
                 merged_blocks.append(block)
@@ -749,27 +742,40 @@ class KnitoutDiffer:
     def _compare_operations(self) -> list[Knitout_Difference_Block]:
         """Compare operation sequences of two files."""
         diffs = []
-        prior_op_lines_1 = 0
-        prior_op_lines_2 = 0
         for block_1, block_2 in zip(self._operations1_blocks, self._operations2_blocks):
             normalized_block1: list[str] = [l.get_normalized_string(ignore_comments=self.ignore_comments) for l in block_1]
             normalized_block2: list[str] = [l.get_normalized_string(ignore_comments=self.ignore_comments) for l in block_2]
-            if block_1[0].operation is Knitout_Instruction_Type.Xfer and block_2[0].operation is Knitout_Instruction_Type.Xfer:
-                # both xfer blocks. Short circuit if they contain a re-organizable set of xfers.
-                xfer_from_set_1 = set(xfer_line.instruction.needle for xfer_line in block_1)
-                xfer_from_set_2 = set(xfer_line.instruction.needle for xfer_line in block_2)
-                symmetric_difference = xfer_from_set_1.symmetric_difference(xfer_from_set_2)
-                if len(symmetric_difference) == 0:
-                    prior_op_lines_1 += len(block_1)
-                    prior_op_lines_2 += len(block_2)
-                    continue  # these are the same, move on to the next block
+            block_diffs = []
             matcher = difflib.SequenceMatcher(None, normalized_block1, normalized_block2)
             for tag, i1, i2, j1, j2 in matcher.get_opcodes():
                 if tag == 'equal':
                     continue
-                diffs.append(Knitout_Difference_Block(DiffType.OPERATION, tag, block_1[i1:i2], block_2[j1:j2]))
-            prior_op_lines_1 += len(block_1)
-            prior_op_lines_2 += len(block_2)
+                if i1 >= len(block_1):
+                    start1 = block_1[-1].line_number + 1
+                else:
+                    start1 = block_1[i1].line_number
+                if i2 >= len(block_1):
+                    end1 = block_1[-1].line_number + 1
+                else:
+                    end1 = block_1[i2].line_number
+                if j1 >= len(block_2):
+                    start2 = block_2[-1].line_number + 1
+                else:
+                    start2 = block_2[j1].line_number
+                if j2 >= len(block_2):
+                    end2 = block_2[-1].line_number + 1
+                else:
+                    end2 = block_2[j2].line_number
+                block_diffs.append(Knitout_Difference_Block(tag, block_1[i1:i2], block_2[j1:j2],
+                                                            start1, end1, start2, end2))
+            if len(block_diffs) > 0:  # some differences, try rearranging
+                block_diff = Knitout_Difference_Block(Knitout_Difference_Block_Tag.replace, block_1, block_2,
+                                                      block_1[0].line_number, block_1[-1].line_number, block_2[0].line_number, block_2[-1].line_number)
+                if (block_diff.can_be_rearranged and
+                        (block_diff.is_transfer_only_block() or block_diff.is_equivalent_all_needle())):
+                    diffs.append(block_diff)
+                    continue  # add this instead of the original diffs.
+            diffs.extend(block_diffs)
         if len(self._operations1_blocks) != len(self._operations2_blocks):
             remaining_ops_1 = []
             for b in self._operations1_blocks[len(self._operations2_blocks):]:
@@ -783,7 +789,24 @@ class KnitoutDiffer:
             for tag, i1, i2, j1, j2 in matcher.get_opcodes():
                 if tag == 'equal':
                     continue
-                diffs.append(Knitout_Difference_Block(DiffType.OPERATION, tag, remaining_ops_1[i1:i2], remaining_ops_2[j1:j2]))
+                if i1 >= len(remaining_ops_1):
+                    start1 = remaining_ops_1[-1].line_number + 1
+                else:
+                    start1 = remaining_ops_1[i1].line_number
+                if i2 >= len(remaining_ops_1):
+                    end1 = remaining_ops_1[-1].line_number + 1
+                else:
+                    end1 = remaining_ops_1[i2].line_number
+                if j1 >= len(remaining_ops_2):
+                    start2 = remaining_ops_2[-1].line_number + 1
+                else:
+                    start2 = remaining_ops_2[j1].line_number
+                if j2 >= len(remaining_ops_2):
+                    end2 = remaining_ops_2[-1].line_number + 1
+                else:
+                    end2 = remaining_ops_2[j2].line_number
+                diffs.append(Knitout_Difference_Block(tag, remaining_ops_1[i1:i2], remaining_ops_2[j1:j2],
+                                                      start1, end1, start2, end2))
         return diffs
 
     @staticmethod

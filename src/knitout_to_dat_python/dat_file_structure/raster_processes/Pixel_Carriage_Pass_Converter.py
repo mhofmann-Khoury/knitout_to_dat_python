@@ -271,11 +271,11 @@ class Pixel_Carriage_Pass_Converter:
             if operation_color.is_front:
                 return [Drop_Instruction(Needle(is_front=True, position=slot), comment)]
             else:
-                return [Drop_Instruction(Needle(is_front=False, position=slot), comment)]
+                return [Drop_Instruction(Needle(is_front=False, position=slot-self.rack), comment)]
         elif operation_color.is_front:  # single operation with single needle
             return [_get_single_needle_instruction(first_operation, Needle(is_front=True, position=slot))]
         else:
-            return [_get_single_needle_instruction(first_operation, Needle(is_front=False, position=slot))]
+            return [_get_single_needle_instruction(first_operation, Needle(is_front=False, position=slot-self.rack))]
 
     @property
     def has_prior_pause(self) -> bool:

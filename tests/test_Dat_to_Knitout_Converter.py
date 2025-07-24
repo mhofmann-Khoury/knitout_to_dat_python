@@ -123,8 +123,6 @@ class TestDat_to_Knitout_Converter(TestCase):
 
     def test_xfer_rackings(self):
         o_py, o_js, py_js = self.compare_dats_by_knitout('xfer_rackings.ks', 'xfer_rackings')
-        # assert o_py.are_functionally_equivalent, "Original and Python code differ"
-        # assert o_js.are_functionally_equivalent, "Original and Javascript code differ"
         print(f"# Compare Shift Original xfer_rackings.k with Python->Dat->Knitout Output")
         differ = KnitoutDiffer('xfer_rackings.k', 'xfer_rackings_from_py.k', shift_file2=1)
         original_to_py_result = differ.get_diff_results()
@@ -206,6 +204,13 @@ class TestDat_to_Knitout_Converter(TestCase):
         o_py, o_js, py_js = self.compare_dats_by_knitout('pauses.ks', 'pauses',
                                                          c=1, pattern_width=10, pattern_height=10)
 
+        assert o_py.are_functionally_equivalent, "Original and Python code differ"
+        assert o_js.are_functionally_equivalent, "Original and Javascript code differ"
+        assert py_js.are_functionally_equivalent, "Javascript and Python code differ"
+
+    def test_all_needle_racked(self):
+        o_py, o_js, py_js = self.compare_dats_by_knitout('all_needle_racked.ks', 'all_needle_racked',
+                                                         c=1, pattern_width=10)
         assert o_py.are_functionally_equivalent, "Original and Python code differ"
         assert o_js.are_functionally_equivalent, "Original and Javascript code differ"
         assert py_js.are_functionally_equivalent, "Javascript and Python code differ"

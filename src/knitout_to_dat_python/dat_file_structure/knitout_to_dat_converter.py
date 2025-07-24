@@ -105,6 +105,9 @@ class Knitout_to_Dat_Converter:
         # Knitout parsing results
         self.knitout_lines: list[Knitout_Line] = parse_knitout(self.knitout, pattern_is_file=self.knitout_is_file)
         self.knitout_executer: Knitout_Executer_With_Kickbacks = Knitout_Executer_With_Kickbacks(self.knitout_lines, Knitting_Machine())
+        self._leftmost_slot: int = 0
+        self._rightmost_slot: int = 0
+        self._set_slot_range()
 
         if self.specified_carrier_count != 10:
             warnings.warn(f"Knitout: Expected 10 carriers but {self.specified_carrier_count} carriers were specified.")
@@ -137,6 +140,25 @@ class Knitout_to_Dat_Converter:
         """
         return len(self.raster_data)
 
+    def _set_slot_range(self) -> None:
+        def _carriage_pass_range(carriage_pass: Carriage_Pass) -> tuple[int, int]:
+            """
+            :return: Left most and Right most needle positions in the carriage pass.
+            TODO: Fix Carriage Pass class to include the racking value in self.carriage_pass_range().
+            """
+            sorted_needles = carriage_pass.rightward_sorted_needles()
+            return int(sorted_needles[0].racked_position_on_front(cp.rack)), int(sorted_needles[-1].racked_position_on_front(cp.rack))
+        min_left, max_right = 1000, -1
+        for cp in self.knitout_executer.process:
+            if isinstance(cp, Carriage_Pass):
+                left, right = _carriage_pass_range(cp)
+                if left < min_left:
+                    min_left = left
+                if right > max_right:
+                    max_right = right
+        self._leftmost_slot = min_left
+        self._rightmost_slot = max_right
+
     @property
     def leftmost_slot(self) -> int:
         """
@@ -144,7 +166,8 @@ class Knitout_to_Dat_Converter:
             The minimum needle position of operations in the knitout code.
             If the knitout never uses a needle position, this will be set to 0.
         """
-        return self.knitout_executer.left_most_position if self.knitout_executer.left_most_position is not None else 0
+        return self._leftmost_slot
+        # return self.knitout_executer.left_most_position if self.knitout_executer.left_most_position is not None else 0
 
     @property
     def rightmost_slot(self) -> int:
@@ -153,7 +176,16 @@ class Knitout_to_Dat_Converter:
             The maximum needle position of operations in the knitout code.
             If the knitout never uses a needle position, this will be set to 0.
         """
-        return self.knitout_executer.right_most_position if self.knitout_executer.right_most_position is not None else 0
+        return self._rightmost_slot
+        # return self.knitout_executer.right_most_position if self.knitout_executer.right_most_position is not None else 0
+
+    @property
+    def slot_range(self) -> tuple[int, int]:
+        """
+        Returns: The leftmost and rightmost needle slots of the knitout process.
+
+        """
+        return self._leftmost_slot, self._rightmost_slot
 
     @property
     def knitout_header(self) -> Knitting_Machine_Header:

@@ -58,14 +58,16 @@ class All_Needle_Carriage_Pass(Carriage_Pass):
             return False
         elif not self.compatible_with_pass_type(instruction):
             return False
-        if self._direction is None:
+        elif self._direction is None:
             if instruction.needle in self._needles_to_instruction:
                 return False
             elif instruction.needle_2 in self._needles_to_instruction:
                 return False
-        elif not self._direction.needles_are_in_pass_direction(self.last_needle, instruction.needle):
-            if self._direction.needle_direction_comparison(self.last_needle, instruction.needle) == 0:  # all needle fix
-                return True
+        elif instruction.needle in self._needles_to_instruction:  # already has an operation at this needle:
+            return False
+        elif self.all_needle_rack and instruction.needle.position == self.last_needle.position and instruction.needle.is_front != self.last_needle.is_front:  # Opposite needles are all-needle rack
+            return True
+        elif not self._direction.needles_are_in_pass_direction(self.last_needle, instruction.needle, rack=rack, all_needle_rack=self.all_needle_rack):
             return False
         return True
 
