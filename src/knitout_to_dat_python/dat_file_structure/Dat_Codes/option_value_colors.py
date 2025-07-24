@@ -6,7 +6,24 @@ from knitout_interpreter.knitout_execution_structures.Carriage_Pass import Carri
 from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import Carriage_Pass_Direction
 from virtual_knitting_machine.machine_components.yarn_management.Yarn_Carrier_Set import Yarn_Carrier_Set
 
-from knitout_to_dat_python.dat_file_structure.dat_file_color_codes import PRESSER_MODE_ON, NO_CARRIERS
+from knitout_to_dat_python.dat_file_structure.Dat_Codes.dat_file_color_codes import NO_CARRIERS
+
+
+class Link_Process_Color(Enum):
+    """Enumeration of the Links Process color options."""
+    Ignore_Link_Process = 1
+
+    def __str__(self) -> str:
+        return self.name
+
+    def __repr__(self) -> str:
+        return str(self)
+
+    def __int__(self) -> int:
+        return self.value
+
+    def __hash__(self) -> int:
+        return int(self)
 
 
 class Drop_Sinker_Color(Enum):
@@ -30,6 +47,23 @@ class Drop_Sinker_Color(Enum):
 class Amiss_Split_Hook_Color(Enum):
     """Enumeration of color codes for the Amiss_Split_Hook option line."""
     Split_Hook = 10
+
+    def __str__(self) -> str:
+        return self.name
+
+    def __repr__(self) -> str:
+        return str(self)
+
+    def __int__(self) -> int:
+        return self.value
+
+    def __hash__(self) -> int:
+        return int(self)
+
+
+class Pause_Color(Enum):
+    """Enumeration of Pause Color Codes for pause/reset option Line"""
+    Pause = 20
 
     def __str__(self) -> str:
         return self.name
@@ -233,7 +267,7 @@ class Presser_Setting_Color(Enum):
             assert isinstance(value, int)
             return value
         elif self.should_use_presser_mode(carriage_pass):  # Auto, carriage pass suggests need for presser
-            return int(PRESSER_MODE_ON)
+            return int(Presser_Setting_Color.On)
         else:  # Auto, carriage pass does not need presser.
             return int(Presser_Setting_Color.Off)
 

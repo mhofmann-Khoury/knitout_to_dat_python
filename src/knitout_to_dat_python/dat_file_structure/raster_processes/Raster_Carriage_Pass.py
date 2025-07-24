@@ -12,9 +12,8 @@ from virtual_knitting_machine.machine_components.needles.Needle import Needle
 from knitout_to_dat_python.dat_file_structure.Dat_Codes.operation_colors import Operation_Color, get_operation_color
 from knitout_to_dat_python.dat_file_structure.Dat_Codes.option_lines import Left_Option_Lines, Right_Option_Lines
 from knitout_to_dat_python.dat_file_structure.Dat_Codes.option_value_colors import Drop_Sinker_Color, Hook_Operation_Color, Knit_Cancel_Color, Rack_Direction_Color, Rack_Pitch_Color, \
-    get_carriage_pass_direction_color, Presser_Setting_Color, carriers_to_int, Amiss_Split_Hook_Color
-from knitout_to_dat_python.dat_file_structure.dat_file_color_codes import IGNORE_LINK_PROCESS, \
-    PAUSE_CARRIAGE_PASS, STOPPING_MARK, OPTION_LINE_COUNT
+    get_carriage_pass_direction_color, Presser_Setting_Color, carriers_to_int, Amiss_Split_Hook_Color, Pause_Color, Link_Process_Color
+from knitout_to_dat_python.dat_file_structure.Dat_Codes.dat_file_color_codes import STOPPING_MARK, OPTION_LINE_COUNT
 
 
 class Raster_Carriage_Pass:
@@ -60,7 +59,7 @@ class Raster_Carriage_Pass:
         self.stitch_number: int = stitch_number
         self.speed_number: int = speed_number
         self.presser_setting: Presser_Setting_Color = presser_setting
-        self.pause: bool = pause
+        self._pause: bool = pause
 
         # Process the carriage pass into raster data
         self.slot_colors: dict[int, Operation_Color] = {}  # slot_number -> color_code
@@ -180,7 +179,7 @@ class Raster_Carriage_Pass:
         Sets the ignore_link_process_option flag to True.
         This option is always true for knitout processes.
         """
-        self.right_option_line_settings[Right_Option_Lines.Links_Process] = IGNORE_LINK_PROCESS
+        self.right_option_line_settings[Right_Option_Lines.Links_Process] = int(Link_Process_Color.Ignore_Link_Process)
 
     def _set_carrier_options(self) -> None:
         """
@@ -253,7 +252,19 @@ class Raster_Carriage_Pass:
         Sets the pause option line.
         """
         if self.pause:
-            self.left_option_line_settings[Left_Option_Lines.Pause_Option] = PAUSE_CARRIAGE_PASS
+            self.left_option_line_settings[Left_Option_Lines.Pause_Option] = int(Pause_Color.Pause)
+
+    @property
+    def pause(self) -> bool:
+        """
+        Returns: True if this carriage pass will have a pause option.
+        """
+        return self._pause
+
+    @pause.setter
+    def pause(self, value: bool) -> None:
+        self._pause = value
+        self._set_pause_option()
 
     def _set_direction_options(self) -> None:
         """
@@ -304,9 +315,10 @@ class Raster_Carriage_Pass:
         """
         return 2 * ((OPTION_LINE_COUNT * 2) + option_space + pattern_space) + pattern_width + 2
 
-    def get_raster_row(self, pattern_width: int, option_space: int = 10, pattern_space: int = 4) -> list[int]:
+    def get_raster_row(self, pattern_width: int, option_space: int = 10, pattern_space: int = 4, offset_slots:int=0) -> list[int]:
         """
         Args:
+            offset_slots: The amount to offset the slots. Used in patterns with no 0-needles, to offset everything 1 to left (-1 offset).
             pattern_space: The spacing between option lines and the patter. Defaults to 4.
             pattern_width: The width of the knitting pattern.
             option_space: The spacing around the option lines. Defaults to 10.
@@ -314,24 +326,22 @@ class Raster_Carriage_Pass:
             The list of color-codes that correspond to a row of the DAT raster for the given carriage pass.
         """
         raster_row = self._raster_left_option_raster(option_space)
-        raster_row.extend(self._raster_needle_operations(pattern_width, pattern_space))
+        raster_row.extend(self._raster_needle_operations(pattern_width, offset_slots, pattern_space))
         raster_row.extend(self._raster_right_option_raster(option_space))
         assert len(raster_row) == self.raster_width(pattern_width, option_space, pattern_space)
         return raster_row
 
-    def _raster_needle_operations(self, pattern_width: int, pattern_space: int = 4) -> list[int]:
+    def _raster_needle_operations(self, pattern_width: int, offset_slots: int, pattern_space: int = 4) -> list[int]:
         # initiate with left side pattern spacing
         pattern_raster = [0] * pattern_space
         left_stop_mark, right_stop_mark = self._get_stopping_marks()
-        if left_stop_mark < 0:
-            pattern_raster.append(STOPPING_MARK)  # pattern starts on Needle 0, stopping mark added before pattern
-        else:  # Left stop mark is inside the pattern width
-            pattern_raster.append(0)
-        for slot_index in range(pattern_width + 1):  # Add needle operations for each index.
+        left_stop_mark += offset_slots
+        right_stop_mark += offset_slots
+        for slot_index in range(-1, pattern_width + 1):  # Add needle operations for each index.
             if slot_index == left_stop_mark or slot_index == right_stop_mark:  # A stopping mark index has been found.
                 pattern_raster.append(STOPPING_MARK)
-            elif slot_index in self.slot_colors:  # An operation is specified for this slot
-                pattern_raster.append(int(self.slot_colors[slot_index]))
+            elif (slot_index-offset_slots) in self.slot_colors:  # An operation is specified for this slot
+                pattern_raster.append(int(self.slot_colors[slot_index-offset_slots]))
             else:  # No operation or stopping point specified. Fill with a no-op
                 pattern_raster.append(0)
         # add right side pattern spacing

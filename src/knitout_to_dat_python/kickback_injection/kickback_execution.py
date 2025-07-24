@@ -4,6 +4,7 @@ Subclass of Knitout_Executer that introduces kickbacks for carrier management wh
 
 from knitout_interpreter.knitout_execution_structures.Carriage_Pass import Carriage_Pass
 from knitout_interpreter.knitout_operations.Knitout_Line import Knitout_Line
+from knitout_interpreter.knitout_operations.Pause_Instruction import Pause_Instruction
 from knitout_interpreter.knitout_operations.carrier_instructions import Knitout_Instruction, Yarn_Carrier_Instruction, Releasehook_Instruction
 from knitout_interpreter.knitout_operations.needle_instructions import Miss_Instruction, Needle_Instruction
 from virtual_knitting_machine.Knitting_Machine import Knitting_Machine
@@ -414,9 +415,9 @@ class Knitout_Executer_With_Kickbacks(Knitout_Executer):
                 kickback_executed_instructions.extend(executed_pass)
             else:
                 updated = execution.execute(self.kickback_machine)
-                if updated:
+                if updated or isinstance(instruction, Pause_Instruction):
                     kickback_executed_instructions.append(execution)
-            if updated:
+            if updated or isinstance(instruction, Pause_Instruction):
                 kickback_process.append(execution)
             if isinstance(execution, Carriage_Pass):
                 if execution.xfer_pass:

@@ -88,6 +88,10 @@ class Knitout_Diff_Line:
         """
         return self.instruction.comment
 
+    @comment.setter
+    def comment(self, comment: str | None) -> None:
+        self.instruction.comment = comment
+
     @property
     def is_version_line(self) -> bool:
         """
@@ -142,17 +146,200 @@ class Knitout_Diff_Line:
         return [str(t) for t in tokens]
 
 
-@dataclass
+class Knitout_Difference_Block_Tag(Enum):
+    """Enumeration of different Knitout Difference Block Tags."""
+    equal = 'equal'
+    insert = 'insert'
+    delete = 'delete'
+    replace = 'replace'
+
+
 class Knitout_Difference_Block:
     """Class for tracking a block of differences between 2 knitout files."""
-    difference_operation: DiffType
-    change_type: str
-    lines1: list[Knitout_Diff_Line]
-    lines2: list[Knitout_Diff_Line]
-    lines_1_start: int
-    lines_2_start: int
-    lines_1_end: int
-    lines_2_end: int
+
+    def __init__(self, difference_operation: DiffType, tag: Knitout_Difference_Block_Tag | str, lines1: list[Knitout_Diff_Line], lines2: list[Knitout_Diff_Line]):
+        self.difference_operation: DiffType = difference_operation
+        if isinstance(tag, str):
+            tag = Knitout_Difference_Block_Tag(tag)
+        self.change_type: Knitout_Difference_Block_Tag = tag
+        self.lines1: list[Knitout_Diff_Line] = lines1
+        self.lines2: list[Knitout_Diff_Line] = lines2
+
+    @property
+    def line_1_start(self) -> int | None:
+        """
+        Returns: The line number from the first knitout file of the first line in this difference block.
+        """
+        if len(self.lines1) == 0:
+            return None
+        return self.lines1[0].line_number
+
+    @property
+    def line_2_start(self) -> int | None:
+        """
+        Returns: The line number from the second knitout file of the first line in this difference block.
+        """
+        if len(self.lines2) == 0:
+            return None
+        return self.lines2[0].line_number
+
+    @property
+    def line_1_end(self) -> int | None:
+        """
+        Returns: The line number from the first knitout file of the last line in this difference block.
+        """
+        if len(self.lines1) == 0:
+            return None
+        return self.lines1[-1].line_number
+
+    @property
+    def line_2_end(self) -> int | None:
+        """
+        Returns: The line number from the second knitout file of the last line in this difference block.
+        """
+        if len(self.lines2) == 0:
+            return None
+        return self.lines2[-1].line_number
+
+    def is_equivalent_all_needle(self) -> bool:
+        """
+        Returns: True if this difference block is a replacement that only represents a difference of all-needle operations.
+
+        """
+        if self.change_type is not Knitout_Difference_Block_Tag.replace:
+            return False
+        pairlines_1 = zip(self.lines1[0:2:-1], self.lines1[1:2:])
+        pairlines_2 = zip(self.lines2[0:2:-1], self.lines2[1:2:])
+
+        def _all_needle_pairs(a1: Knitout_Diff_Line, a2: Knitout_Diff_Line, b1: Knitout_Diff_Line, b2: Knitout_Diff_Line) -> bool:
+            """
+            Args:
+                a1: The first diff line from the first instruction set.
+                a2: The second diff line form the first instruction set.
+                b1: The first diff line from the second instruction set.
+                b2: The second diff line from the second instruction set.
+
+            Returns: True if you can swap the two instruction pairs to form the same set of all needle operations
+
+            """
+            if any(not isinstance(l.instruction, Needle_Instruction) or l.instruction.has_second_needle for l in [a1, a2, b1, b2]):
+                return False  # incompatible instruction types for all needle swap
+            elif a1.operation != b2.operation or a2.operation != b1.operation:
+                return False  # Unswappable pairs of operation
+            a1 = a1.instruction
+            a2 = a2.instruction
+            b1 = b1.instruction
+            b2 = b2.instruction
+            assert isinstance(a1, Needle_Instruction)
+            assert isinstance(a2, Needle_Instruction)
+            assert isinstance(b1, Needle_Instruction)
+            assert isinstance(b2, Needle_Instruction)
+            if any(l.direction != a1.direction for l in [a2, b1, b2]):  # Directions must match for all elements in the pair
+                return False
+            elif a1.needle != b2.needle or a2.needle != b1.needle:
+                return False
+            return True
+
+        for pair1, pair2 in zip(pairlines_1, pairlines_2):
+            if not _all_needle_pairs(pair1[0], pair1[1], pair2[0], pair2[1]):
+                return False
+        return True
+
+    def __str__(self) -> str:
+        if self.change_type is Knitout_Difference_Block_Tag.insert or self.change_type is Knitout_Difference_Block_Tag.delete:
+            return f"{self.change_type} Lines {self.line_1_start}:{self.line_1_end} at {self.line_2_start}:{self.line_2_end}"
+        else:
+            return f"{self.change_type} Lines {self.line_1_start}:{self.line_1_end} with {self.line_2_start}:{self.line_2_end}"
+
+    def __repr__(self) -> str:
+        return str(self)
+
+    def report(self) -> list[str]:
+        """
+        Returns: A localized list of report strings of the difference block.
+        The difference block references the line numbers location in each file
+        and then reports a line by line comparison of the change.
+        Each block ends at a set of "------"
+
+        """
+        report = [f"@@ {self.line_1_start}:{self.line_1_end} and {self.line_2_start}:{self.line_2_end}@@"]
+        if self.change_type is Knitout_Difference_Block_Tag.insert:
+            left_mod = "+"
+            right_mod = "-"
+            mid_mod = "---"
+        elif self.change_type is Knitout_Difference_Block_Tag.delete:
+            left_mod = "-"
+            right_mod = "+"
+            mid_mod = "---"
+        elif self.change_type is Knitout_Difference_Block_Tag.replace:
+            left_mod = "*"
+            right_mod = "*"
+            mid_mod = "<->"
+        else:
+            left_mod = ""
+            right_mod = ""
+            mid_mod = "==="
+        for line1, line2 in zip(self.lines1, self.lines2):
+            line1_str = str(line1).strip()
+            line2_str = str(line2).strip()
+            report.append(f"{left_mod} {line1_str} {mid_mod} {line2_str} {right_mod}")
+        if len(self.lines1) > len(self.lines2):
+            for line1 in self.lines1[len(self.lines2):]:
+                line1_str = str(line1).strip()
+                report.append(f"{left_mod} {line1_str} {mid_mod} NA {right_mod}")
+        elif len(self.lines1) < len(self.lines2):
+            for line2 in self.lines2[len(self.lines1):]:
+                line2_str = str(line2).strip()
+                report.append(f"{left_mod} NA {mid_mod} {line2_str} {right_mod}")
+        report.append("--------------------------------------------------------")
+        return report
+
+    @property
+    def only_comment_differences(self) -> list[None | tuple[str | None, str | None]] | None:
+        """
+        Returns:
+            None if there are no comment-only differences between lines in the block;
+            Otherwise, return a list of tuple comment differences for each line or None if two lines do not have this difference.
+        """
+        if self.change_type is not Knitout_Difference_Block_Tag.replace:
+            return None
+        comment_differences: list[None | tuple[str | None, str | None]] = []
+        for l1, l2 in zip(self.lines1, self.lines2):
+            if l1.comment != l2.comment:
+                comment_differences.append((l1.comment, l2.comment))
+            else:
+                comment_differences.append(None)
+        if any(d is not None for d in comment_differences):
+            return comment_differences
+        else:
+            return None
+
+    @property
+    def re_arrangeable(self) -> bool:
+        """
+        Returns:
+            True if the lines (ignoring comments) could be rearranged to the same result.
+        """
+        normalized_lines_1 = set(l.get_normalized_string(ignore_comments=True) for l in self.lines1)
+        normalized_lines_2 = set(l.get_normalized_string(ignore_comments=True) for l in self.lines2)
+        symmetric_difference = normalized_lines_1.symmetric_difference(normalized_lines_2)
+        return len(symmetric_difference) == 0
+
+    @property
+    def is_significant(self) -> bool:
+        """
+        Returns:
+            True if this difference represents a knitting significant change.
+            False for equal blocks, comment only differences, and re-arrangeable blocks of transfers.
+        """
+        if self.change_type is Knitout_Difference_Block_Tag.equal:
+            return False  # Equal diffs means there is no difference, let alone a significant difference.
+        elif self.change_type is Knitout_Difference_Block_Tag.replace:  # could be xfer or all-needle rearrangement
+            if self.is_transfer_only_block() and self.re_arrangeable:
+                return False  # This is a block of re_arrangeable transfers.
+            elif self.is_equivalent_all_needle():
+                return False
+        return True
 
     def is_transfer_only_block(self) -> bool:
         """
@@ -167,27 +354,6 @@ class Knitout_Difference_Block:
         non_xfers_2 = any(isinstance(line, Xfer_Instruction) for line in self.lines2)
         return not non_xfers_1 and not non_xfers_2
 
-    def is_only_reorderd_transfers(self) -> bool:
-        """
-            Check if an operation diff block represents only transfer operation reordering.
-
-            Transfer operations can typically be executed in any order without affecting
-            the final knitted result, so reordering them should be considered functionally
-            equivalent.
-
-            Returns:
-                True if the block only contains transfer reordering, False otherwise.
-            """
-        # Only check 'replace' type changes (where lines were replaced with different lines)
-        # Only check if both lines contain the same number of xfers
-        # Only check if everything is a transfer
-        if (self.change_type != 'replace' or len(self.lines1) != len(self.lines2)
-                or not self.is_transfer_only_block()):
-            return False
-        xfers_1 = set((line.instruction.needle, line.instruction.needle_2) for line in self.lines1 if isinstance(line.instruction, Xfer_Instruction))
-        xfers_2 = set((line.instruction.needle_2, line.instruction.needle) for line in self.lines2 if isinstance(line.instruction, Xfer_Instruction))
-        return xfers_1 == xfers_2
-
     def get_xfers(self) -> set[tuple[Needle, Needle]]:
         """
         Returns:
@@ -197,145 +363,53 @@ class Knitout_Difference_Block:
         xfers.update((line.instruction.needle, line.instruction.needle_2) for line in self.lines2 if isinstance(line.instruction, Xfer_Instruction))
         return xfers
 
-    def matching_xfer_blocks(self, other_block) -> bool:
-        """
-        Args:
-            other_block: The other Knitout_Difference_Block to compare for insertion and deletion of xfers.
-
-        Returns:
-            True if both blocks are corresponding insert-delete pairs of the same xfers.
-        """
-        assert isinstance(other_block, Knitout_Difference_Block)
-        if self.change_type == 'insert':
-            if other_block.change_type != 'delete':
-                return False
-        elif self.change_type == 'delete':
-            if other_block.change_type != 'insert':
-                return False
-        xfers_1 = self.get_xfers()
-        xfers_2 = other_block.get_xfers()
-        return xfers_1 == xfers_2  # both blocks have the same xfers, thus they are replaced by the reordering.
-
 
 class Knitout_Diff_Result:
     """
     Represents the result of a knitout file comparison with comprehensive equivalence analysis.
     """
 
-    def __init__(self, header_diffs: list[dict], operation_diffs: list[Knitout_Difference_Block], unified_diff: str):
+    def __init__(self, filepath_1: str, filepath_2: str, header_diffs: list[dict], operation_diffs: list[Knitout_Difference_Block]):
         """
         Initialize the diff result and calculate all equivalence assessments.
 
         Args:
+            filepath_1: The name of the first file.
+            filepath_2: The name of the second file.
             header_diffs: List of header differences
             operation_diffs: List of operation differences
-            unified_diff: Traditional unified diff output
         """
         # Store basic diff results
+        self.filepath_2: str = filepath_2
+        self.filepath_1: str = filepath_1
         self.header_diffs: list[dict] = header_diffs
         self.operation_diffs: list[Knitout_Difference_Block] = operation_diffs
         self.significant_diffs: list[Knitout_Difference_Block] = []
         self.transfer_order_diffs: list[Knitout_Difference_Block] = []
+        self.all_needle_order_diffs: list[Knitout_Difference_Block] = []
         self._analyze_transfer_differences()
-        self.unified_diff = unified_diff
 
-    @staticmethod
-    def _is_transfer_only_block(operation_diff_block: dict) -> bool:
+    def report_significant_differences(self) -> str:
         """
-        Check if a block contains only transfer operations (regardless of change type).
-
-        Args:
-            operation_diff_block: A single operation diff block
-
-        Returns:
-            True if the block only contains transfer operations
+        Returns: A report string of all the significant differences in the two files in the order that they were encountered.
         """
-        # Check lines1 (deleted/original lines)
-        lines1 = operation_diff_block.get('lines1', [])
-        for line in lines1:
-            if not isinstance(line.instruction, Xfer_Instruction):
-                return False
-
-        # Check lines2 (inserted/new lines)
-        lines2 = operation_diff_block.get('lines2', [])
-        for line in lines2:
-            if not isinstance(line.instruction, Xfer_Instruction):
-                return False
-
-        # If we get here, all operations in both sides are transfers
-        return len(lines1) > 0 or len(lines2) > 0  # Must have at least some operations
-
-    @staticmethod
-    def _extract_transfers_from_block(operation_diff_block: dict) -> set[tuple[Needle, Needle]]:
-        """
-        Extract all transfer operations from a diff block as a set of tuples.
-
-        Args:
-            operation_diff_block: A single operation diff block
-
-        Returns:
-            Set of (from_needle, to_needle) tuples representing all transfers in the block
-        """
-        transfers = set()
-
-        # Extract from lines1 (deleted/original)
-        lines1 = operation_diff_block.get('lines1', [])
-        for line in lines1:
-            if isinstance(line.instruction, Xfer_Instruction):
-                from_needle = str(line.instruction.needle)
-                to_needle = str(line.instruction.needle_2)
-                transfers.add((from_needle, to_needle))
-
-        # Extract from lines2 (inserted/new)
-        lines2 = operation_diff_block.get('lines2', [])
-        for line in lines2:
-            if isinstance(line.instruction, Xfer_Instruction):
-                from_needle = line.instruction.needle
-                to_needle = line.instruction.needle_2
-                transfers.add((from_needle, to_needle))
-
-        return transfers
+        report = f"{len(self.significant_diffs)} Significant Differences:\n"
+        for diff in self.significant_diffs:
+            report += f"\t{diff}\n"
+        return report
 
     def _analyze_transfer_differences(self) -> None:
         """
         Analyze operation differences to separate significant changes from transfer reordering,
         including cross-block transfer reordering (insert + delete blocks).
         """
-        # Track which blocks contain only transfers
-        self.transfer_order_diffs = []
-        self.significant_diffs = []
-        current_xfer_change_blocks = []
-        current_insertions = set()
-        current_deletions = set()
-
-        def _insertions_deletions_cancel() -> bool:
-            return current_insertions == current_deletions
-
-        # First pass: categorize individual blocks and collect transfers
         for block in self.operation_diffs:
-            if block.is_only_reorderd_transfers():
-                self.transfer_order_diffs.append(block)
-            elif block.is_transfer_only_block():  # This block contains only transfers to insert or delete which may match another sections reordering.
-                if block.change_type == 'insert':
-                    current_xfer_change_blocks.append(block)
-                    current_insertions.update(block.get_xfers())
-                elif block.change_type == 'delete':
-                    current_xfer_change_blocks.append(block)
-                    current_deletions.update(block.get_xfers())
-                if _insertions_deletions_cancel():
-                    self.transfer_order_diffs.extend(current_xfer_change_blocks)
-                    current_xfer_change_blocks = []
-                    current_insertions = set()
-                    current_deletions = set()
-            else:  # This block has significant (non-transfer) changes
+            if block.is_significant:
                 self.significant_diffs.append(block)
-                # other types of changes cancel out the current set of insertion-deletion pairs
-                self.significant_diffs.extend(current_xfer_change_blocks)
-                current_xfer_change_blocks = []
-                current_insertions = set()
-                current_deletions = set()
-
-        self.significant_diffs.extend(current_xfer_change_blocks)  # remaining xfer changes have not been resolved.
+            elif block.is_transfer_only_block() and block.re_arrangeable:
+                self.transfer_order_diffs.append(block)
+            elif block.is_equivalent_all_needle():
+                self.all_needle_order_diffs.append(block)
 
     @property
     def are_equivalent(self) -> bool:
@@ -361,71 +435,6 @@ class Knitout_Diff_Result:
         """
         return len(self.header_diffs) > 0
 
-    @staticmethod
-    def is_transfer_reordering_only(operation_diff_block: dict) -> bool:
-        """
-        Check if an operation diff block represents only transfer operation reordering.
-
-        Transfer operations can typically be executed in any order without affecting
-        the final knitted result, so reordering them should be considered functionally
-        equivalent.
-
-        Args:
-            operation_diff_block: A single operation diff block from operation_diffs
-
-        Returns:
-            True if the block only contains transfer reordering, False otherwise
-
-        Example:
-            for diff_block in result.operation_diffs:
-                if differ.is_transfer_reordering_only(diff_block):
-                    print("This block is just transfer reordering - functionally equivalent")
-        """
-        # Only check 'replace' type changes (where lines were replaced with different lines)
-        if operation_diff_block.get('change_type') != 'replace':
-            return False
-
-        lines1 = operation_diff_block.get('lines1', [])
-        lines2 = operation_diff_block.get('lines2', [])
-
-        # Must have the same number of operations
-        if len(lines1) != len(lines2):
-            return False
-
-        # All operations in both sets must be transfer operations
-        transfers1 = []
-        transfers2 = []
-
-        for line in lines1:
-            if not isinstance(line.instruction, Xfer_Instruction):
-                return False
-            transfers1.append(line.instruction)
-
-        for line in lines2:
-            if not isinstance(line.instruction, Xfer_Instruction):
-                return False
-            transfers2.append(line.instruction)
-
-        # Create sets of transfer operations for comparison
-        # Each transfer is represented as a tuple of (from_needle, to_needle, carrier_set)
-        transfer_set1 = set()
-        transfer_set2 = set()
-
-        for xfer in transfers1:
-            # Create a hashable representation of the transfer
-            from_needle = str(xfer.needle)
-            to_needle = str(xfer.needle_2)
-            transfer_set1.add((from_needle, to_needle))
-
-        for xfer in transfers2:
-            # Create a hashable representation of the transfer
-            from_needle = str(xfer.needle)
-            to_needle = str(xfer.needle_2)
-            transfer_set2.add((from_needle, to_needle))
-
-        # If the sets are identical, it's just reordering
-        return transfer_set1 == transfer_set2
-
     @property
     def has_significant_differences(self) -> bool:
         """
@@ -443,6 +452,14 @@ class Knitout_Diff_Result:
         return len(self.transfer_order_diffs) > 0
 
     @property
+    def has_all_needle_reordering_differences(self) -> bool:
+        """
+        Returns: True if there are all-needle reordering blocks.
+
+        """
+        return len(self.all_needle_order_diffs) > 0
+
+    @property
     def summary(self) -> str:
         """Generate a human-readable summary of differences."""
         if self.are_equivalent:
@@ -450,67 +467,64 @@ class Knitout_Diff_Result:
         elif self.are_functionally_equivalent:
             return "Files are functionally equivalent."
 
-        summary_parts = []
+        summary_parts: list[str] = []
 
-        if len(self.header_diffs) > 0:
-            summary_parts.append(f"Header differences: {len(self.header_diffs)}")
-            for diff in self.header_diffs:
-                key = diff['key']
-                if diff['value1'] is None:
-                    summary_parts.append(f"  + Added header: {key}")
-                elif diff['value2'] is None:
-                    summary_parts.append(f"  - Removed header: {key}")
-                else:
-                    summary_parts.append(f"  ~ Modified header: {key}")
-        if len(self.transfer_order_diffs) > 0:
+        if self.has_header_differences:
+            summary_parts.extend(summary_parts)
+        if self.has_transfer_reordering_differences:
             total_changes = sum(len(diff.lines1) + len(diff.lines2) for diff in self.transfer_order_diffs)
             summary_parts.append(f"Transfer Order Differences: {len(self.transfer_order_diffs)} blocks, {total_changes} lines")
+        if self.all_needle_order_diffs:
+            total_changes = sum(len(diff.lines1) + len(diff.lines2) for diff in self.all_needle_order_diffs)
+            summary_parts.append(f"All-Needle Order Differences: {len(self.all_needle_order_diffs)} blocks, {total_changes} lines")
         if len(self.significant_diffs) > 0:
             total_changes = sum(len(diff.lines1) + len(diff.lines2) for diff in self.significant_diffs)
             summary_parts.append(f"Operation differences: {len(self.significant_diffs)} blocks, {total_changes} lines")
-
-            for i, diff in enumerate(self.significant_diffs):
-                if diff.change_type == 'replace':
-                    summary_parts.append(f"  Block {i + 1}: {len(diff.lines1)} lines replaced with {len(diff.lines2)} lines")
-                elif diff.change_type == 'delete':
-                    summary_parts.append(f"  Block {i + 1}: {len(diff.lines1)} lines deleted")
-                elif diff.change_type == 'insert':
-                    summary_parts.append(f"  Block {i + 1}: {len(diff.lines2)} lines inserted")
-
+            for diff in self.significant_diffs:
+                summary_parts.extend(diff.report())
         return '\n'.join(summary_parts)
 
-    def simple_report(self, file1_path: str, file2_path: str) -> None:
+    def header_difference_summary(self) -> list[str]:
+        """
+        Returns:
+            List of string-report differences between the headers.
+        """
+        if not self.has_header_differences:
+            return ["No header differences."]
+        summary_parts = [f"Header differences: {len(self.header_diffs)}"]
+        for diff in self.header_diffs:
+            key = diff['key']
+            if diff['value1'] is None:
+                summary_parts.append(f"  + Added header: {key}")
+            elif diff['value2'] is None:
+                summary_parts.append(f"  - Removed header: {key}")
+            else:
+                summary_parts.append(f"  ~ Modified header: {key}")
+        return summary_parts
+
+    def simple_report(self) -> None:
         """
         Print out a simple report of the difference results.
-        Args:
-            file1_path: The name of the first file.
-            file2_path: The name of the second file.
         """
         if self.are_equivalent:
-            print(f"✓✓ {file1_path} and {file2_path} are equivalent")
+            print(f"✓✓ {self.filepath_1} and {self.filepath_2} are equivalent")
         else:
             if self.are_functionally_equivalent:
-                print(f"✓ {file1_path} and {file2_path} are functionally equivalent:")
+                print(f"✓ {self.filepath_1} and {self.filepath_2} are functionally equivalent:")
                 if self.has_transfer_reordering_differences:
                     print("Transfer operation reordering detected")
                 if self.has_header_differences:
                     print("Has Header Differences")
             else:
-                print(f"✗ {file1_path} and {file2_path} have {len(self.significant_diffs)} significant differences")
+                print(f"✗ {self.filepath_1} and {self.filepath_2} have {len(self.significant_diffs)} significant differences")
 
-    def verbose_report(self, file1_path: str, file2_path: str) -> None:
+    def verbose_report(self) -> None:
         """
         Printout a verbose report of the difference results.
-        Args:
-            file1_path: The name of the first file.
-            file2_path: The name of the second file.
         """
-        print(f"Comparing {file1_path} and {file2_path}")
+        print(f"Comparing {self.filepath_1} and {self.filepath_2}")
         print("=" * 50)
         print(self.summary)
-        print("\nDetailed diff:")
-        print("-" * 30)
-        print(self.unified_diff)
 
 
 def parse_file(knitout_file: str) -> list[Knitout_Diff_Line]:
@@ -537,73 +551,143 @@ def parse_file(knitout_file: str) -> list[Knitout_Diff_Line]:
     return parsed_lines
 
 
-def _extract_meaningful_lines(lines: list[Knitout_Diff_Line], ignore_version: bool = True, ignore_comments: bool = True) -> list[Knitout_Diff_Line]:
-    """Extract lines that are meaningful for comparison."""
-    meaningful = []
-
-    for line in lines:
-        if line.is_header:  # Always include  headers
-            meaningful.append(line)
-        elif line.operation is not None:  # Include lines with operations
-            meaningful.append(line)
-        elif not ignore_version and line.is_version_line:  # include version lines if not ignoring
-            meaningful.append(line)
-        elif not ignore_comments and line.only_comment:  # include comments if not ignoring
-            meaningful.append(line)
-
-    return meaningful
-
-
 class KnitoutDiffer:
     """
     Main class for comparing knitout files and generating semantic diffs.
     """
 
-    def __init__(self, ignore_comments: bool = True, ignore_whitespace: bool = True, ignore_version: bool = True):
+    def __init__(self, file1_path: str, file2_path: str, ignore_comments: bool = True, ignore_whitespace: bool = True, ignore_version: bool = True, shift_file1: int = 0, shift_file2: int = 0) -> None:
         """
         Initialize the KnitoutDiffer.
 
         Args:
+            file1_path: The file path of the first file.
+            file2_path: The file path of the second file.
             ignore_comments: If True, ignore comment differences
             ignore_whitespace: If True, ignore whitespace-only differences
         """
+        self.file1_path: str = file1_path
+        self.file2_path: str = file2_path
         self.ignore_comments: bool = ignore_comments
         self.ignore_whitespace: bool = ignore_whitespace
         self.ignore_version: bool = ignore_version
+        self._lines1 = self._clear_meaningless_content(parse_file(self.file1_path))
+        if shift_file1 != 0:
+            for line in self._lines1:
+                if isinstance(line.instruction, Needle_Instruction):
+                    line.instruction.needle += shift_file1
+                    if line.instruction.has_second_needle:
+                        line.instruction.needle_2 += shift_file1
+        self._lines2 = self._clear_meaningless_content(parse_file(self.file2_path))
+        if shift_file2 != 0:
+            for line in self._lines2:
+                if isinstance(line.instruction, Needle_Instruction):
+                    line.instruction.needle += shift_file2
+                    if line.instruction.has_second_needle:
+                        line.instruction.needle_2 += shift_file2
+        self._headers1: list[Knitout_Diff_Line] = []
+        self._operations1: list[Knitout_Diff_Line] = []
+        self._headers2: list[Knitout_Diff_Line] = []
+        self._operations2: list[Knitout_Diff_Line] = []
+        self._headers1, self._operations1 = self._separate_headers_operations(self._lines1)
+        self._headers2, self._operations2 = self._separate_headers_operations(self._lines2)
+        self.header_diffs: list[dict] = self._compare_headers()
+        self._operations1_blocks: list[list[Knitout_Diff_Line]] = self._process_operations_to_operation_blocks(self._operations1)
+        self._operations2_blocks: list[list[Knitout_Diff_Line]] = self._process_operations_to_operation_blocks(self._operations2)
+        self.operation_diffs: list[Knitout_Difference_Block] = self._compare_operations()
+        # Generate unified diff
+        # self.unified_diff = self._generate_unified_diff(self.file1_path, self.file2_path)
 
-    def diff_files(self, file1_path: str, file2_path: str) -> Knitout_Diff_Result:
+    def _process_operations_to_operation_blocks(self, ops: list[Knitout_Diff_Line], block_types: set[Knitout_Instruction_Type] | None = None) -> list[list[Knitout_Diff_Line]]:
+        blocks = self._block_operations(ops, block_types)
+        reduced_rack_blocks = self._reduce_racks(blocks)
+        merged_blocks = self._merge_blocks(reduced_rack_blocks)
+        return merged_blocks
+
+    @staticmethod
+    def _block_operations(ops: list[Knitout_Diff_Line], block_types: set[Knitout_Instruction_Type] | None = None) -> list[list[Knitout_Diff_Line]]:
+        if block_types is None:
+            block_types = {Knitout_Instruction_Type.Xfer, Knitout_Instruction_Type.Rack}
+        op_blocks = []
+        current_op_block: list[Knitout_Diff_Line] = []
+        current_block_type = None
+        for op in ops:
+            if op.operation in block_types:
+                if op.operation is not current_block_type and len(current_op_block) != 0:  # reset op block
+                    op_blocks.append(current_op_block)
+                    current_op_block = []
+                current_block_type = op.operation
+            elif current_block_type is not None:  # reset xfer op block for incoming non_xfer
+                op_blocks.append(current_op_block)
+                current_op_block = []
+                current_block_type = None
+            current_op_block.append(op)
+        if len(current_op_block) > 0:
+            op_blocks.append(current_op_block)
+        return op_blocks
+
+    @staticmethod
+    def _reduce_racks(op_blocks: list[list[Knitout_Diff_Line]]) -> list[list[Knitout_Diff_Line]]:
+        current_rack = 0.0
+        reduced_rack_blocks: list[list[Knitout_Diff_Line]] = []
+        for block in op_blocks:
+            if block[-1].operation is Knitout_Instruction_Type.Rack:  # rack block
+                last_rack = block[-1].instruction
+                assert isinstance(last_rack, Rack_Instruction)
+                block_rack = last_rack.rack_value
+                if block_rack != current_rack:
+                    current_rack = block_rack
+                    if len(reduced_rack_blocks) > 0 and reduced_rack_blocks[-1][-1].operation is not Knitout_Instruction_Type.Xfer:  # add back into last block
+                        reduced_rack_blocks[-1].append(block[-1])
+                    else:  # can't extend last block, so add a new one with just the final rack.
+                        reduced_rack_blocks.append([block[-1]])
+            else:
+                reduced_rack_blocks.append(block)
+        if len(reduced_rack_blocks) > 0 and reduced_rack_blocks[-1][-1].operation is Knitout_Instruction_Type.Rack:
+            reduced_rack_blocks.pop()  # remove extraneous last rack.
+        return reduced_rack_blocks
+
+    @staticmethod
+    def _merge_blocks(op_blocks: list[list[Knitout_Diff_Line]]) -> list[list[Knitout_Diff_Line]]:
+        merged_blocks: list[list[Knitout_Diff_Line]] = [op_blocks[0]]
+        for block in op_blocks[1:]:
+            both_xfers = merged_blocks[-1][0].operation is Knitout_Instruction_Type.Xfer and block[0].operation is Knitout_Instruction_Type.Xfer
+            neither_xfers = merged_blocks[-1][0].operation is not Knitout_Instruction_Type.Xfer and block[0].operation is not Knitout_Instruction_Type.Xfer
+            if both_xfers or neither_xfers:
+                merged_blocks[-1].extend(block)
+            else:
+                merged_blocks.append(block)
+        return merged_blocks
+
+    def get_diff_results(self) -> Knitout_Diff_Result:
         """
-        Compare two knitout files and return a comprehensive diff result.
-
-        Args:
-            file1_path: Path to the first knitout file
-            file2_path: Path to the second knitout file
-
         Returns:
             DiffResult object containing comparison results
         """
-        # Parse both files
-        lines1 = parse_file(file1_path)
-        lines2 = parse_file(file2_path)
 
-        # Extract meaningful lines (ignore empty lines and comments if configured)
-        meaningful1 = _extract_meaningful_lines(lines1, self.ignore_version, self.ignore_comments)
-        meaningful2 = _extract_meaningful_lines(lines2, self.ignore_version, self.ignore_comments)
+        return Knitout_Diff_Result(self.file1_path, self.file2_path, self.header_diffs, self.operation_diffs)
 
-        # Separate headers and operations
-        headers1, operations1 = self._separate_headers_operations(meaningful1)
-        headers2, operations2 = self._separate_headers_operations(meaningful2)
+    def _clear_meaningless_content(self, lines: list[Knitout_Diff_Line]) -> list[Knitout_Diff_Line]:
+        """
+        Args:
+            lines: The lines to clear of meaninglessness content.
+        Returns:
+            The set of lines cleared of meaninglessness content such as comments and version lines.
+        """
+        meaningful = []
+        for line in lines:
+            if self.ignore_comments:
+                line.comment = None
+            if line.is_header:  # Always include  headers
+                meaningful.append(line)
+            elif line.operation is not None:  # Include lines with operations
+                meaningful.append(line)
+            elif not self.ignore_version and line.is_version_line:  # include version lines if not ignoring
+                meaningful.append(line)
+            elif not self.ignore_comments and line.only_comment:  # include comments if not ignoring
+                meaningful.append(line)
 
-        # Compare headers
-        header_diffs = self._compare_headers(headers1, headers2)
-
-        # Compare operations
-        operation_diffs = self._compare_operations(operations1, operations2)
-
-        # Generate unified diff
-        unified_diff = self._generate_unified_diff(lines1, lines2, file1_path, file2_path)
-
-        return Knitout_Diff_Result(header_diffs, operation_diffs, unified_diff)
+        return meaningful
 
     @staticmethod
     def _separate_headers_operations(lines: list[Knitout_Diff_Line]) -> tuple[list[Knitout_Diff_Line], list[Knitout_Diff_Line]]:
@@ -619,13 +703,13 @@ class KnitoutDiffer:
 
         return headers, operations
 
-    def _compare_headers(self, headers1: list[Knitout_Diff_Line], headers2: list[Knitout_Diff_Line]) -> list[dict]:
+    def _compare_headers(self) -> list[dict]:
         """Compare header sections of two files."""
         diffs = []
 
         # Convert headers to dictionaries for easier comparison
-        headers1_dict = self._headers_to_dict(headers1)
-        headers2_dict = self._headers_to_dict(headers2)
+        headers1_dict = self._headers_to_dict(self._headers1)
+        headers2_dict = self._headers_to_dict(self._headers2)
 
         # Find differences
         all_keys = set(headers1_dict.keys()) | set(headers2_dict.keys())
@@ -662,22 +746,44 @@ class KnitoutDiffer:
         """Convert header lines to a dictionary."""
         return {h.instruction.header_type: h for h in headers if isinstance(h.instruction, Knitout_Header_Line)}
 
-    def _compare_operations(self, ops1: list[Knitout_Diff_Line], ops2: list[Knitout_Diff_Line]) -> list[Knitout_Difference_Block]:
+    def _compare_operations(self) -> list[Knitout_Difference_Block]:
         """Compare operation sequences of two files."""
         diffs = []
-
-        # Normalize operations for comparison
-        norm_ops1 = [self._normalize_operation(op) for op in ops1]
-        norm_ops2 = [self._normalize_operation(op) for op in ops2]
-
-        # Use difflib to find differences
-        matcher = difflib.SequenceMatcher(None, norm_ops1, norm_ops2)
-
-        for tag, i1, i2, j1, j2 in matcher.get_opcodes():
-            if tag == 'equal':
-                continue
-            diffs.append(Knitout_Difference_Block(DiffType.OPERATION, tag, ops1[i1:i2], ops2[j1:j2], i1, j1, i2, j2))
-
+        prior_op_lines_1 = 0
+        prior_op_lines_2 = 0
+        for block_1, block_2 in zip(self._operations1_blocks, self._operations2_blocks):
+            normalized_block1: list[str] = [l.get_normalized_string(ignore_comments=self.ignore_comments) for l in block_1]
+            normalized_block2: list[str] = [l.get_normalized_string(ignore_comments=self.ignore_comments) for l in block_2]
+            if block_1[0].operation is Knitout_Instruction_Type.Xfer and block_2[0].operation is Knitout_Instruction_Type.Xfer:
+                # both xfer blocks. Short circuit if they contain a re-organizable set of xfers.
+                xfer_from_set_1 = set(xfer_line.instruction.needle for xfer_line in block_1)
+                xfer_from_set_2 = set(xfer_line.instruction.needle for xfer_line in block_2)
+                symmetric_difference = xfer_from_set_1.symmetric_difference(xfer_from_set_2)
+                if len(symmetric_difference) == 0:
+                    prior_op_lines_1 += len(block_1)
+                    prior_op_lines_2 += len(block_2)
+                    continue  # these are the same, move on to the next block
+            matcher = difflib.SequenceMatcher(None, normalized_block1, normalized_block2)
+            for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+                if tag == 'equal':
+                    continue
+                diffs.append(Knitout_Difference_Block(DiffType.OPERATION, tag, block_1[i1:i2], block_2[j1:j2]))
+            prior_op_lines_1 += len(block_1)
+            prior_op_lines_2 += len(block_2)
+        if len(self._operations1_blocks) != len(self._operations2_blocks):
+            remaining_ops_1 = []
+            for b in self._operations1_blocks[len(self._operations2_blocks):]:
+                remaining_ops_1.extend(b)
+            remaining_ops_2 = []
+            for b in self._operations2_blocks[len(self._operations2_blocks):]:
+                remaining_ops_2.extend(b)
+            normalized_block1_remainder = [l.get_normalized_string(ignore_comments=self.ignore_comments) for l in remaining_ops_1]
+            normalized_block2_remainder = [l.get_normalized_string(ignore_comments=self.ignore_comments) for l in remaining_ops_2]
+            matcher = difflib.SequenceMatcher(None, normalized_block1_remainder, normalized_block2_remainder)
+            for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+                if tag == 'equal':
+                    continue
+                diffs.append(Knitout_Difference_Block(DiffType.OPERATION, tag, remaining_ops_1[i1:i2], remaining_ops_2[j1:j2]))
         return diffs
 
     @staticmethod
@@ -688,22 +794,19 @@ class KnitoutDiffer:
         # Join tokens with single spaces
         return " ".join(line.tokens)
 
-    def _generate_unified_diff(self, lines1: list[Knitout_Diff_Line], lines2: list[Knitout_Diff_Line],
-                               file1_path: str, file2_path: str) -> str:
-        """Generate a unified diff string."""
-        lines1 = _extract_meaningful_lines(lines1, self.ignore_version, self.ignore_comments)
-        lines2 = _extract_meaningful_lines(lines2, self.ignore_version, self.ignore_comments)
-        text1 = [line.get_normalized_string(ignore_comments=self.ignore_comments) for line in lines1]
-        text2 = [line.get_normalized_string(ignore_comments=self.ignore_comments) for line in lines2]
-
-        diff = difflib.unified_diff(
-            text1, text2,
-            fromfile=file1_path,
-            tofile=file2_path,
-            lineterm=''
-        )
-
-        return '\n'.join(diff)
+    # def _generate_unified_diff(self, file1_path: str, file2_path: str) -> str:
+    #     """Generate a unified diff string."""
+    #     text1 = [line.get_normalized_string(ignore_comments=self.ignore_comments) for line in self._lines1]
+    #     text2 = [line.get_normalized_string(ignore_comments=self.ignore_comments) for line in self._lines2]
+    #
+    #     diff = difflib.unified_diff(
+    #         text1, text2,
+    #         fromfile=file1_path,
+    #         tofile=file2_path,
+    #         lineterm=''
+    #     )
+    #
+    #     return '\n'.join(diff)
 
 
 def diff_knitout_files(file1_path: str, file2_path: str,
@@ -727,87 +830,14 @@ def diff_knitout_files(file1_path: str, file2_path: str,
     Returns:
         DiffResult object containing comparison results.
     """
-    differ = KnitoutDiffer(ignore_comments=ignore_comments, ignore_whitespace=ignore_whitespace, ignore_version=ignore_version)
-    diff_result = differ.diff_files(file1_path, file2_path)
+    differ = KnitoutDiffer(file1_path, file2_path, ignore_comments=ignore_comments, ignore_whitespace=ignore_whitespace, ignore_version=ignore_version)
+    diff_result = differ.get_diff_results()
     if simple_report:
-        diff_result.simple_report(file1_path, file2_path)
+        diff_result.simple_report()
     if verbose:
-        diff_result.verbose_report(file1_path, file2_path)
+        diff_result.verbose_report()
 
     return diff_result
-
-
-def analyze_knitout_structure(filepath: str) -> dict:
-    """
-    Analyze the structure of a knitout file for debugging and understanding.
-
-    Args:
-        filepath: Path to the knitout file
-
-    Returns:
-        Dictionary containing structural analysis
-
-    Example:
-        analysis = analyze_knitout_structure('pattern.k')
-        print(f"File has {analysis['total_operations']} operations")
-        print(f"Uses {len(analysis['carriers'])} carriers: {analysis['carriers']}")
-        print(f"Needle range: {analysis['needle_range']}")
-    """
-    lines = parse_file(filepath)
-
-    analysis = {
-        'total_lines': len(lines),
-        'comment_lines': 0,
-        'header_lines': 0,
-        'operation_lines': 0,
-        'headers': {},
-        'operations': {},
-        'carriers': set(),
-        'needles': set(),
-        'needle_range': None,
-        'opcodes_used': set()
-    }
-    min_needle = 1000
-    max_needle = -1
-
-    for line in lines:
-        if isinstance(line.instruction, Knitout_Header_Line):
-            analysis['header_lines'] += 1
-            analysis['headers'][str(line.instruction.header_type)] = str(line.instruction.header_value)
-        elif isinstance(line.instruction, Knitout_Instruction):
-            analysis['operation_lines'] += 1
-            opcode = line.instruction.instruction_type
-            analysis['opcodes_used'].add(opcode)
-
-            if opcode not in analysis['operations']:
-                analysis['operations'][opcode] = 0
-            analysis['operations'][opcode] += 1
-            # Extract carriers and needles
-            if isinstance(line.instruction, Yarn_Carrier_Instruction):
-                analysis['carriers'].add(str(line.instruction.carrier_id))
-            elif isinstance(line.instruction, Needle_Instruction) and line.instruction.has_carrier_set:
-                analysis['carriers'].update(str(cid) for cid in line.instruction.carrier_set.carrier_ids)
-            if isinstance(line.instruction, Needle_Instruction):
-                analysis['needles'].add(str(line.instruction.needle))
-                min_needle = min(min_needle, line.instruction.needle)
-                max_needle = max(max_needle, line.instruction.needle)
-                if line.instruction.has_second_needle:
-                    analysis['needles'].add(str(line.instruction.needle_2))
-                    min_needle = min(min_needle, line.instruction.needle_2)
-                    max_needle = max(max_needle, line.instruction.needle_2)
-        else:
-            analysis['comment_lines'] += 1
-
-    # Calculate needle range
-    if analysis['needles']:
-        analysis['needle_range'] = min_needle, max_needle
-
-    # Convert sets to lists for JSON serialization
-    analysis['carriers'] = list(analysis['carriers'])
-    analysis['needles'] = list(analysis['needles'])
-    analysis['opcodes_used'] = list(analysis['opcodes_used'])
-
-    return analysis
 
 
 if __name__ == "__main__":
@@ -821,7 +851,7 @@ if __name__ == "__main__":
 
     try:
         result = diff_knitout_files(file1, file2, verbose=True)
-        result.simple_report(file1, file2)
+        result.simple_report()
         if result.are_equivalent:
             sys.exit(0)
         else:

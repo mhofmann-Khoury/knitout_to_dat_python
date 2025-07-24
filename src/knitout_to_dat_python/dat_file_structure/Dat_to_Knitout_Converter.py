@@ -8,10 +8,9 @@ from knitout_interpreter.knitout_operations.carrier_instructions import Inhook_I
 from knitout_interpreter.knitout_operations.knitout_instruction import Knitout_Instruction
 from virtual_knitting_machine.Knitting_Machine import Knitting_Machine
 
-from knitout_to_dat_python.dat_file_structure.dat_file_color_codes import WIDTH_SPECIFIER
+from knitout_to_dat_python.dat_file_structure.Dat_Codes.dat_file_color_codes import WIDTH_SPECIFIER
 from knitout_to_dat_python.dat_file_structure.raster_processes.Pixel_Carriage_Pass_Converter import Pixel_Carriage_Pass_Converter
 from knitout_to_dat_python.kickback_injection.kickback_execution import Kick_Instruction
-
 
 
 class Dat_to_Knitout_Converter:
@@ -46,8 +45,22 @@ class Dat_to_Knitout_Converter:
         rack: int = 0
         all_needle_rack: bool = False
 
-        def _add_to_process(e: Knitout_Instruction | Carriage_Pass) -> tuple[bool, None | int | tuple[int, bool]]:
-            if isinstance(e, Rack_Instruction):
+        def _add_to_process(e: Knitout_Instruction | Carriage_Pass | None) -> tuple[bool, None | int | tuple[int, bool]]:
+            """
+
+            Args:
+                e: The executed instruction or carriage pass to add to the process.
+
+            Returns:
+                A tuple:
+                    The first value is a boolean which is True if the executed process would update a local variable involving the knitting machine.
+                    The second value is None if there are no local values to update.
+                    Otherwise, the second value may be a tuple of an int and bool to set the new racking, or an integer to set the current carrier on the yarn-inserting-hook.
+
+            """
+            if e is None:
+                return False, None
+            elif isinstance(e, Rack_Instruction):
                 if e.rack != rack or e.all_needle_rack != all_needle_rack:
                     self.process.append(e)
                     return True, (e.rack, e.all_needle_rack)
@@ -59,7 +72,7 @@ class Dat_to_Knitout_Converter:
             elif isinstance(e, Releasehook_Instruction):
                 self.process.append(e)
                 return True, None
-            else:  # outhook or carriage pass
+            else:  # outhook, pause instruction, or carriage pass
                 self.process.append(e)
                 return False, None
 
@@ -72,7 +85,7 @@ class Dat_to_Knitout_Converter:
                         rack = updated_value[0]
                         all_needle_rack = updated_value[1]
                     else:
-                        carrier_on_gripper = has_update
+                        carrier_on_gripper = updated_value
 
         for execution in self.process:
             if isinstance(execution, Knitout_Instruction):

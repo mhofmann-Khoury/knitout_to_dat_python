@@ -11,6 +11,7 @@ from knitout_interpreter.knitout_execution_structures.Carriage_Pass import Carri
 from knitout_interpreter.knitout_language.Knitout_Parser import parse_knitout
 from knitout_interpreter.knitout_operations.Header_Line import Knitting_Machine_Header
 from knitout_interpreter.knitout_operations.Knitout_Line import Knitout_Line
+from knitout_interpreter.knitout_operations.Pause_Instruction import Pause_Instruction
 from knitout_interpreter.knitout_operations.carrier_instructions import Inhook_Instruction, Releasehook_Instruction, Outhook_Instruction
 from knitout_interpreter.knitout_operations.knitout_instruction import Knitout_Instruction
 from virtual_knitting_machine.Knitting_Machine import Knitting_Machine
@@ -18,7 +19,7 @@ from virtual_knitting_machine.Knitting_Machine_Specification import Knitting_Pos
 from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import Carriage_Pass_Direction
 from virtual_knitting_machine.machine_components.yarn_management.Yarn_Carrier_Set import Yarn_Carrier_Set
 
-from knitout_to_dat_python.dat_file_structure.dat_file_color_codes import WIDTH_SPECIFIER
+from knitout_to_dat_python.dat_file_structure.Dat_Codes.dat_file_color_codes import WIDTH_SPECIFIER
 from knitout_to_dat_python.dat_file_structure.Dat_Codes.option_value_colors import Hook_Operation_Color, Knit_Cancel_Color
 from knitout_to_dat_python.dat_file_structure.dat_sequences.end_sequence import finish_knit_sequence
 from knitout_to_dat_python.dat_file_structure.dat_sequences.startup_sequence import startup_knit_sequence
@@ -270,7 +271,16 @@ class Knitout_to_Dat_Converter:
 
         # Add rasters for the knitout process.
         knitting_sequence = self._get_pattern_rasters
-        self._extend_raster_data([cp.get_raster_row(self.knitting_width, option_horizontal_buffer, pattern_horizontal_buffer) for cp in knitting_sequence])
+        has_0_slot = False
+        for cp in knitting_sequence:
+            if 0 in cp.slot_colors:
+                has_0_slot = True
+                break
+        if not has_0_slot:
+            offset_slots = -1
+        else:
+            offset_slots = 0
+        self._extend_raster_data([cp.get_raster_row(self.knitting_width, option_horizontal_buffer, pattern_horizontal_buffer, offset_slots=offset_slots) for cp in knitting_sequence])
 
         # Create ending sequence
         end_sequence = self._get_end_rasters()
@@ -409,6 +419,7 @@ class Knitout_to_Dat_Converter:
             else:
                 return Knit_Cancel_Color.Standard
 
+        pause_after_next_pass: bool = False
         for execution in self.knitout_executer.process:
             if isinstance(execution, Knitout_Instruction):
                 instruction = execution
@@ -426,6 +437,8 @@ class Knitout_to_Dat_Converter:
                     else:
                         outhook_passes = self._raster_outhook(current_machine_state, instruction)
                         raster_passes.extend(outhook_passes)
+                elif isinstance(instruction, Pause_Instruction):
+                    pause_after_next_pass = True
                 instruction.execute(current_machine_state)  # update machine state as the raster progresses.
             elif isinstance(execution, Carriage_Pass):
                 carriage_pass = execution
@@ -439,9 +452,12 @@ class Knitout_to_Dat_Converter:
                 if not carriage_pass.xfer_pass:  # update carriage position for determining knit cancel.
                     last_carriage_position = carriage_pass.last_needle.position
                 raster_pass = Raster_Carriage_Pass(carriage_pass, self.machine_specification, min_knitting_slot=self.leftmost_slot, max_knitting_slot=self.rightmost_slot,
-                                                   hook_operation=hook_operation, knit_cancel=knit_cancel_color)
+                                                   hook_operation=hook_operation, knit_cancel=knit_cancel_color, pause=pause_after_next_pass)
+                pause_after_next_pass = False  # reset pause after it has been applied to an instruction.
                 raster_passes.append(raster_pass)
                 carriage_pass.execute(current_machine_state)  # update teh machine state as the raster progresses
+        if pause_after_next_pass:  # if pause after next pass is still set, add it to the last operation.
+            raster_passes[-1].pause = True
         return raster_passes
 
     def _raster_outhook(self, current_machine_state: Knitting_Machine, outhook_instruction: Outhook_Instruction) -> list[Soft_Miss_Raster_Pass]:

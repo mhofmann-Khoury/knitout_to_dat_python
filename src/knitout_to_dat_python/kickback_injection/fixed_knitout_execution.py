@@ -3,6 +3,7 @@ from knit_graphs.Knit_Graph import Knit_Graph
 from knitout_interpreter.knitout_execution_structures.Carriage_Pass import Carriage_Pass
 from knitout_interpreter.knitout_operations.Header_Line import Knitout_Header_Line, Knitting_Machine_Header
 from knitout_interpreter.knitout_operations.Knitout_Line import Knitout_Line, Knitout_Comment_Line, Knitout_Version_Line
+from knitout_interpreter.knitout_operations.Pause_Instruction import Pause_Instruction
 from knitout_interpreter.knitout_operations.needle_instructions import Needle_Instruction
 from virtual_knitting_machine.Knitting_Machine import Knitting_Machine
 
@@ -101,13 +102,15 @@ class Knitout_Executer:
             elif isinstance(instruction, Knitout_Header_Line):
                 _updated = self.executed_header.update_header(instruction, update_machine=in_header)  # only update the machine_state if in the header section
             else:
-                if instruction.interrupts_carriage_pass and current_pass is not None:  # interrupt the current carriage pass with rack and carrier operations
+                if (instruction.interrupts_carriage_pass or isinstance(instruction, Pause_Instruction)) and current_pass is not None:
+                    # interrupt the current carriage pass with rack and carrier operations
+                    # Todo: Update knitout interpreter to have pause instructions interrupt carriage passes.
                     executed_pass = current_pass.execute(self.knitting_machine)
                     self.process.append(current_pass)
                     self.executed_instructions.extend(executed_pass)
                     current_pass = None
                 updated = instruction.execute(self.knitting_machine)
-                if updated:
+                if isinstance(instruction, Pause_Instruction) or updated:
                     self.process.append(instruction)
                     self.executed_instructions.append(instruction)
                 else:

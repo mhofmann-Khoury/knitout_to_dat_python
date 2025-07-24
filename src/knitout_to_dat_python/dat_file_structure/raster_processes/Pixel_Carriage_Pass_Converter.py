@@ -1,5 +1,6 @@
 """A Module containing the Pixel Carriage Pass Converter Class."""
 from knitout_interpreter.knitout_execution_structures.Carriage_Pass import Carriage_Pass
+from knitout_interpreter.knitout_operations.Pause_Instruction import Pause_Instruction
 from knitout_interpreter.knitout_operations.Rack_Instruction import Rack_Instruction
 from knitout_interpreter.knitout_operations.carrier_instructions import Hook_Instruction, Releasehook_Instruction, Inhook_Instruction, Outhook_Instruction
 from knitout_interpreter.knitout_operations.knitout_instruction import Knitout_Instruction
@@ -10,8 +11,9 @@ from virtual_knitting_machine.machine_components.yarn_management.Yarn_Carrier_Se
 
 from knitout_to_dat_python.dat_file_structure.Dat_Codes.operation_colors import Operation_Color
 from knitout_to_dat_python.dat_file_structure.Dat_Codes.option_lines import Left_Option_Lines, Right_Option_Lines
-from knitout_to_dat_python.dat_file_structure.Dat_Codes.option_value_colors import Hook_Operation_Color, Carriage_Pass_Direction_Color, pixel_to_carriers, Rack_Direction_Color
-from knitout_to_dat_python.dat_file_structure.dat_file_color_codes import STOPPING_MARK, OPTION_LINE_COUNT
+from knitout_to_dat_python.dat_file_structure.Dat_Codes.option_value_colors import Hook_Operation_Color, Carriage_Pass_Direction_Color, pixel_to_carriers, Rack_Direction_Color, Amiss_Split_Hook_Color, \
+    Pause_Color
+from knitout_to_dat_python.dat_file_structure.Dat_Codes.dat_file_color_codes import STOPPING_MARK, OPTION_LINE_COUNT
 from knitout_to_dat_python.dat_file_structure.dat_sequences.end_sequence import All_Needle_Pass
 from knitout_to_dat_python.kickback_injection.kickback_execution import Kick_Instruction, Carriage_Pass_with_Kick
 
@@ -96,9 +98,9 @@ class Pixel_Carriage_Pass_Converter:
     def _read_needle_slots(self, buffer: int = 4) -> None:
         # Trim pixels of the option line boundaries, the left and right buffer, and a possible index of the right stop mark at the maximum width (i.e., -1)
         pattern = self.pixels[(2 * OPTION_LINE_COUNT) + buffer: (-2 * OPTION_LINE_COUNT) - buffer - 1]
-        found_left_stop = False
-        for i, pixel in enumerate(pattern):
-            slot = i - 1  # remove space for a 0 position left stop marker.
+        found_left_stop = pattern[0] == STOPPING_MARK
+        pattern = pattern[1:]
+        for slot, pixel in enumerate(pattern):
             if pixel == STOPPING_MARK:
                 if not found_left_stop:
                     found_left_stop = True
@@ -156,10 +158,11 @@ class Pixel_Carriage_Pass_Converter:
         """
         rack_amount = self.left_option_line_settings[Left_Option_Lines.Rack_Pitch]
         rack_direction = Rack_Direction_Color(self.left_option_line_settings[Left_Option_Lines.Rack_Direction])
-        if rack_amount == 0:
+        if rack_direction is Rack_Direction_Color.Right:
+            assert rack_amount >= 0, f"Expected positive rack amount for rightward rack, got {rack_amount}"
+            return rack_amount + 1
+        elif rack_amount == 0:
             return rack_amount
-        elif rack_direction is Rack_Direction_Color.Right:  # Positive Racking
-            return abs(rack_amount)
         else:
             assert rack_direction is Rack_Direction_Color.Left
             return -1 * abs(rack_amount)
@@ -251,6 +254,7 @@ class Pixel_Carriage_Pass_Converter:
         elif first_operation is Kick_Instruction:
             return [Kick_Instruction(slot, self.direction, self.carrier_set, comment)]
         elif first_operation == Xfer_Instruction or first_operation == Split_Instruction:  # 2 needle operations, need to check racking
+
             if operation_color.is_front:  # split or xfer from front to back
                 needle = Needle(is_front=True, position=slot)
                 needle_2 = _rack_aligned_needle(needle)
@@ -261,6 +265,7 @@ class Pixel_Carriage_Pass_Converter:
             if first_operation is Xfer_Instruction:
                 return [Xfer_Instruction(needle, needle_2, comment)]
             else:  # Split operation
+                assert self.left_option_line_settings[Left_Option_Lines.AMiss_Split_Flag] == Amiss_Split_Hook_Color.Split_Hook.value, f"Can't split without split option line set."
                 return [Split_Instruction(needle, self.direction, needle_2, self.carrier_set, comment)]
         elif self.carrier_set is None:  # Drop Operation
             if operation_color.is_front:
@@ -271,6 +276,22 @@ class Pixel_Carriage_Pass_Converter:
             return [_get_single_needle_instruction(first_operation, Needle(is_front=True, position=slot))]
         else:
             return [_get_single_needle_instruction(first_operation, Needle(is_front=False, position=slot))]
+
+    @property
+    def has_prior_pause(self) -> bool:
+        """
+        Returns: True if the carriage pass is set to pause. False otherwise.
+        """
+        return self.left_option_line_settings[Left_Option_Lines.Pause_Option] == Pause_Color.Pause.value
+
+    def get_prior_pause(self) -> None | Pause_Instruction:
+        """
+        Returns: A Pause_Instruction if the carriage pass is set to pause. None otherwise.
+        """
+        if self.has_prior_pause:
+            return Pause_Instruction()
+        else:
+            return None
 
     def get_carriage_pass(self) -> Carriage_Pass:
         """
@@ -323,7 +344,7 @@ class Pixel_Carriage_Pass_Converter:
         """
         return Rack_Instruction.rack_instruction_from_int_specification(self.rack, self.is_all_needle_rack)
 
-    def get_execution_process(self, release_carrier: int | None = None) -> list[Knitout_Instruction | Carriage_Pass]:
+    def get_execution_process(self, release_carrier: int | None = None) -> list[Knitout_Instruction | Carriage_Pass | None]:
         """
         Args:
             release_carrier: The current carrier on the yarn-inserting hook to release. Defaults to None.
@@ -332,8 +353,8 @@ class Pixel_Carriage_Pass_Converter:
             A list of knitout instructions and the carriage pass used to execute this portion of the knitting process.
         """
         if self.hook_operation is Hook_Operation_Color.In_Hook_Operation or self.hook_operation is Hook_Operation_Color.ReleaseHook_Operation:
-            return [self.get_rack_instruction(), self.get_hook_instruction(release_carrier), self.get_carriage_pass()]
+            return [self.get_rack_instruction(), self.get_prior_pause(), self.get_hook_instruction(release_carrier),  self.get_carriage_pass()]
         elif self.hook_operation is Hook_Operation_Color.Out_Hook_Operation:
-            return [self.get_rack_instruction(), self.get_carriage_pass(), self.get_hook_instruction()]
+            return [self.get_rack_instruction(), self.get_carriage_pass(),  self.get_prior_pause(), self.get_hook_instruction()]
         else:
-            return [self.get_rack_instruction(), self.get_carriage_pass()]
+            return [self.get_rack_instruction(), self.get_prior_pause(), self.get_carriage_pass()]
