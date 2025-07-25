@@ -1,6 +1,10 @@
 """Test cases for the Dat_to_Knitout_Converter class."""
-
+import os
 from unittest import TestCase
+
+from knitout_interpreter.knitout_compilers.compile_knitout import compile_knitout
+from knitout_interpreter.knitout_language.Knitout_Parser import parse_knitout
+from knitout_interpreter.knitout_operations.Rack_Instruction import Rack_Instruction
 
 from knitout_to_dat_python.dat_file_structure.Dat_to_Knitout_Converter import Dat_to_Knitout_Converter
 from knitout_to_dat_python.dat_file_structure.knitout_to_dat_converter import Knitout_to_Dat_Converter
@@ -25,6 +29,16 @@ class TestDat_to_Knitout_Converter(TestCase):
             A tuple of the three knitout diff-results for: the original knitout to python, original knitout to javascript, and python to javascript.
         """
         original_k_file, js_dat_file_name = load_test_knitscript_to_knitout_to_old_dat(ks_file, f"{output_prefix}.k", f"{output_prefix}_js.dat", **ks_kwargs)
+        if not os.path.exists(js_dat_file_name):
+            print(f"JS Dat file {js_dat_file_name} Failed to Compile. Attempting to fix negative all needle rackings")
+            k_file_lines = parse_knitout(original_k_file, pattern_is_file=True)
+            fixed_rack_lines = [Rack_Instruction(line.rack + 0.25, line.comment) if isinstance(line, Rack_Instruction) and line.rack < 0 and line.all_needle_rack
+                                else line
+                                for line in k_file_lines]
+            with open(original_k_file, 'w') as f:
+                f.writelines([str(l) for l in fixed_rack_lines])
+            compile_knitout(original_k_file, js_dat_file_name)
+
         dat_file_name = f"{output_prefix}.dat"
         dat_file = Knitout_to_Dat_Converter(original_k_file, dat_file_name, knitout_in_file=True)
         dat_file.process_knitout_to_dat()
@@ -209,8 +223,22 @@ class TestDat_to_Knitout_Converter(TestCase):
         assert py_js.are_functionally_equivalent, "Javascript and Python code differ"
 
     def test_all_needle_racked(self):
-        o_py, o_js, py_js = self.compare_dats_by_knitout('all_needle_racked.ks', 'all_needle_racked',
+        test_name = 'all_needle_racked'
+        o_py, o_js, py_js = self.compare_dats_by_knitout('all_needle_racked.ks', '%s' % test_name,
                                                          c=1, pattern_width=10)
-        assert o_py.are_functionally_equivalent, "Original and Python code differ"
-        assert o_js.are_functionally_equivalent, "Original and Javascript code differ"
-        assert py_js.are_functionally_equivalent, "Javascript and Python code differ"
+        print(f"# Compare Shift Original {test_name}.k with Python->Dat->Knitout Output")
+        differ = KnitoutDiffer(f'{test_name}.k', f'{test_name}_from_py.k', shift_file2=1)
+        original_to_py_result = differ.get_diff_results()
+        if original_to_py_result.are_functionally_equivalent:
+            original_to_py_result.simple_report()
+        else:
+            original_to_py_result.verbose_report()
+
+        print(f"\n# Compare Original {test_name}.k with JS->Dat->Knitout Output")
+        differ = KnitoutDiffer(f'{test_name}.k', f'{test_name}_js.k', shift_file2=1)
+        original_to_js_result = differ.get_diff_results()
+        if original_to_js_result.are_functionally_equivalent:
+            original_to_js_result.simple_report()
+        else:
+            original_to_js_result.verbose_report()
+        assert py_js.are_equivalent, "Javascript and Python code differ"

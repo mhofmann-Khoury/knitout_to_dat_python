@@ -68,6 +68,15 @@ class Raster_Carriage_Pass:
         self._process_operations()
         self._set_option_lines()
 
+    def shift_slot_colors(self, shift: int) -> None:
+        """
+        Shifts the slot numbers of the carriage pass by the given amount.
+        Args:
+            shift: The amount to shift the slots by.
+        """
+        if shift != 0:
+            self.slot_colors = {s + shift: c for s, c in self.slot_colors.items()}
+
     @property
     def hook_operation(self) -> Hook_Operation_Color:
         """
@@ -98,7 +107,7 @@ class Raster_Carriage_Pass:
         """
         if self.empty_pass:
             return None
-        return min(self._needle_to_slot(self.carriage_pass.first_instruction.needle), self._needle_to_slot(self.carriage_pass.last_instruction.needle))
+        return min(self.slot_colors)
 
     @property
     def max_slot(self) -> int | None:
@@ -109,7 +118,7 @@ class Raster_Carriage_Pass:
         """
         if self.empty_pass:
             return None
-        return max(self._needle_to_slot(self.carriage_pass.first_instruction.needle), self._needle_to_slot(self.carriage_pass.last_instruction.needle))
+        return max(self.slot_colors)
 
     def _process_operations(self) -> None:
         """Process carriage pass operations into colored pixels."""
@@ -315,7 +324,7 @@ class Raster_Carriage_Pass:
         """
         return 2 * ((OPTION_LINE_COUNT * 2) + option_space + pattern_space) + pattern_width + 2
 
-    def get_raster_row(self, pattern_width: int, option_space: int = 10, pattern_space: int = 4, offset_slots:int=0) -> list[int]:
+    def get_raster_row(self, pattern_width: int, option_space: int = 10, pattern_space: int = 4, offset_slots: int = 0) -> list[int]:
         """
         Args:
             offset_slots: The amount to offset the slots. Used in patterns with no 0-needles, to offset everything 1 to left (-1 offset).
@@ -340,8 +349,8 @@ class Raster_Carriage_Pass:
         for slot_index in range(-1, pattern_width + 1):  # Add needle operations for each index.
             if slot_index == left_stop_mark or slot_index == right_stop_mark:  # A stopping mark index has been found.
                 pattern_raster.append(STOPPING_MARK)
-            elif (slot_index-offset_slots) in self.slot_colors:  # An operation is specified for this slot
-                pattern_raster.append(int(self.slot_colors[slot_index-offset_slots]))
+            elif (slot_index - offset_slots) in self.slot_colors:  # An operation is specified for this slot
+                pattern_raster.append(int(self.slot_colors[slot_index - offset_slots]))
             else:  # No operation or stopping point specified. Fill with a no-op
                 pattern_raster.append(0)
         # add right side pattern spacing

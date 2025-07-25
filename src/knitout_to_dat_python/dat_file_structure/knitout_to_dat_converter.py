@@ -302,7 +302,7 @@ class Knitout_to_Dat_Converter:
         self._extend_raster_data(startup_rasters)
 
         # Add rasters for the knitout process.
-        knitting_sequence = self._get_pattern_rasters
+        knitting_sequence = self._get_pattern_rasters()
         has_0_slot = False
         for cp in knitting_sequence:
             if 0 in cp.slot_colors:
@@ -426,7 +426,6 @@ class Knitout_to_Dat_Converter:
         assert len(raster) == self.dat_width
         return raster
 
-    @property
     def _get_pattern_rasters(self) -> list[Raster_Carriage_Pass]:
         """
         Returns:
@@ -490,6 +489,10 @@ class Knitout_to_Dat_Converter:
                 carriage_pass.execute(current_machine_state)  # update teh machine state as the raster progresses
         if pause_after_next_pass:  # if pause after next pass is still set, add it to the last operation.
             raster_passes[-1].pause = True
+
+        if self._leftmost_slot < 0:
+            for raster_pass in raster_passes:
+                raster_pass.shift_slot_colors(abs(self._leftmost_slot))
         return raster_passes
 
     def _raster_outhook(self, current_machine_state: Knitting_Machine, outhook_instruction: Outhook_Instruction) -> list[Soft_Miss_Raster_Pass]:

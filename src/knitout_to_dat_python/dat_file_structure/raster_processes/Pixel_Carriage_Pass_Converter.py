@@ -342,7 +342,20 @@ class Pixel_Carriage_Pass_Converter:
         Returns:
             The rack instruction that should proceed this carriage pass.
         """
-        return Rack_Instruction.rack_instruction_from_int_specification(self.rack, self.is_all_needle_rack)
+        def _rack_instruction_from_int_spec(comment: str | None = None) -> Rack_Instruction:
+            """
+            Args:
+                comment: Optional comment to add to the rack instruction.
+
+            Returns: The rack instruction based on the given racking specification.
+            Todo: Fix this logic in the knitout interpreter.
+
+            """
+            rack_value: float = float(self.rack)
+            if self.is_all_needle_rack:
+                rack_value += 0.25
+            return Rack_Instruction(rack_value, comment)
+        return _rack_instruction_from_int_spec()
 
     def get_execution_process(self, release_carrier: int | None = None) -> list[Knitout_Instruction | Carriage_Pass | None]:
         """
