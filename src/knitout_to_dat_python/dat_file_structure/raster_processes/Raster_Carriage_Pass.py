@@ -12,7 +12,7 @@ from virtual_knitting_machine.machine_components.needles.Needle import Needle
 from knitout_to_dat_python.dat_file_structure.Dat_Codes.operation_colors import Operation_Color, get_operation_color
 from knitout_to_dat_python.dat_file_structure.Dat_Codes.option_lines import Left_Option_Lines, Right_Option_Lines
 from knitout_to_dat_python.dat_file_structure.Dat_Codes.option_value_colors import Drop_Sinker_Color, Hook_Operation_Color, Knit_Cancel_Color, Rack_Direction_Color, Rack_Pitch_Color, \
-    get_carriage_pass_direction_color, Presser_Setting_Color, carriers_to_int, Amiss_Split_Hook_Color, Pause_Color, Link_Process_Color
+    get_carriage_pass_direction_color, Presser_Setting_Color, carriers_to_int, Amiss_Split_Hook_Color, Pause_Color, Link_Process_Color, Carriage_Pass_Direction_Color
 from knitout_to_dat_python.dat_file_structure.Dat_Codes.dat_file_color_codes import STOPPING_MARK, OPTION_LINE_COUNT
 
 
@@ -45,10 +45,7 @@ class Raster_Carriage_Pass:
         """
         self.drop_sinker: bool = drop_sinker
         self.carriage_pass: Carriage_Pass = carriage_pass
-        if self.carriage_pass.xfer_pass:
-            knit_cancel = Knit_Cancel_Color.Knit_Cancel  # Transfer passes always set to knit cancel
-            stitch_number = 0  # Transfers have a 0 stitch number
-        self.knit_cancel: Knit_Cancel_Color = knit_cancel
+        self._knit_cancel: Knit_Cancel_Color = Knit_Cancel_Color.Standard
         self._hook_operation: Hook_Operation_Color = hook_operation
         if self.hook_operation is Hook_Operation_Color.In_Hook_Operation:
             # Todo: Bring this validation into knitscript and knitout interpreter.
@@ -67,6 +64,22 @@ class Raster_Carriage_Pass:
         self.right_option_line_settings: dict[Right_Option_Lines, int] = {opt: 0 for opt in Right_Option_Lines}
         self._process_operations()
         self._set_option_lines()
+        self.knit_cancel = knit_cancel
+
+    @property
+    def knit_cancel(self) -> Knit_Cancel_Color:
+        """
+        Returns: Value of the knit-cancel option.
+        """
+        return self._knit_cancel
+
+    @knit_cancel.setter
+    def knit_cancel(self, value: Knit_Cancel_Color) -> None:
+        if self.carriage_pass.xfer_pass:
+            self._knit_cancel = Knit_Cancel_Color.Knit_Cancel
+        else:
+            self._knit_cancel = value
+        self._set_knit_cancel_option()
 
     def shift_slot_colors(self, shift: int) -> None:
         """
@@ -275,11 +288,19 @@ class Raster_Carriage_Pass:
         self._pause = value
         self._set_pause_option()
 
+    @property
+    def direction_color(self) -> Carriage_Pass_Direction_Color:
+        """
+        Returns: The direction color of for this raster Carriage Pass
+
+        """
+        return get_carriage_pass_direction_color(self.carriage_pass)
+
     def _set_direction_options(self) -> None:
         """
         Sets the direction option lines based on the carriage pass's direction.
         """
-        direction_color = get_carriage_pass_direction_color(self.carriage_pass)
+        direction_color = self.direction_color
         self.left_option_line_settings[Left_Option_Lines.Direction_Specification] = int(direction_color)
         self.right_option_line_settings[Right_Option_Lines.Direction_Specification] = int(direction_color)
 

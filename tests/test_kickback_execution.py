@@ -263,3 +263,64 @@ class TestKickbackExecution(unittest.TestCase):
         executer = self.get_kickback_executer(k)
         kicks = self.get_kicks(executer)
         self.assertEqual(len(kicks), 0, f"Expected 0 kicks. Got {kicks}")
+
+    def test_plate_kicks(self) -> None:
+        k = r"""
+        inhook 1;Activating carrier 1
+        knit - f6 1
+        knit - f5 1
+        knit - f4 1
+        knit - f3 1
+        knit - f2 1
+        knit - f1 1
+        knit + f1 1
+        knit + f2 1
+        knit + f3 1
+        knit + f4 1
+        knit + f5 1
+        knit + f6 1
+        releasehook 1
+        inhook 2;Activating carrier 2
+        knit - f6 2
+        knit - f5 2
+        knit - f4 2
+        knit - f3 2
+        knit - f2 2
+        knit - f1 2
+        knit + f1 2
+        knit + f2 2
+        knit + f3 2
+        knit + f4 2
+        knit + f5 2
+        knit + f6 2
+        releasehook 2
+        knit - f6 1 2
+        knit - f5 1 2
+        knit - f4 1 2
+        knit - f3 1 2
+        knit - f2 1 2
+        knit - f1 1 2
+        knit + f1 1 2
+        knit + f2 1 2
+        knit + f3 1 2
+        knit + f4 1 2
+        knit + f5 1 2
+        knit + f6 1 2
+        knit - f6 2 1
+        knit - f5 2 1
+        knit - f4 2 1; Expected Kick to Right of 3
+        knit - f3 1 2
+        knit - f2 1 2
+        knit - f1 1 2
+        knit + f1 2 1
+        knit + f2 2 1
+        knit + f3 2 1; Expected kick to left of 4
+        knit + f4 1 2
+        knit + f5 1 2
+        knit + f6 1 2
+        outhook 1;Outhooking all active carriers
+        outhook 2;Outhooking all active carriers
+           """
+        executer = self.get_kickback_executer(k)
+        kicks = self.get_kicks(executer)
+        self.assertEqual(len(kicks), 2, f"Expected 2 kicks. Got {kicks}")

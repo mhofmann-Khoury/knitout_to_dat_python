@@ -141,17 +141,34 @@ class Knitout_Executer_With_Kickbacks(Knitout_Executer):
         self.kickback_machine: Knitting_Machine = Knitting_Machine(self.knitting_machine.machine_specification)
         # track the last kicking direction of each carrier. None implies that a carrier has not been kicked since it was last used.
         self._kicked_carriers: dict[int, Carriage_Pass_Direction | None] = {carrier.carrier_id: None for carrier in self.knitting_machine.carrier_system.carriers}
+        # track the buffered position of each carrier based on the direction of the last movement.
+        self._carrier_buffers: dict[int, float] = {carrier.carrier_id: 0 for carrier in self.knitting_machine.carrier_system.carriers}
         self._last_carrier_movement: None | Carriage_Pass = None
         self.add_kickbacks_to_process()
 
-    def _get_carrier_position_range(self, cid: int) -> None | int | tuple[int, int]:
+    def _get_carrier_position(self, cid: int) -> None | float:
+        """
+        Args:
+            cid: The id of the carrier to find the position of.
+
+        Returns: The exact position with a small needle buffer for the given carrier.
+
+        """
+        carrier = self.kickback_machine.carrier_system[cid]
+        if carrier.position is None:
+            return None  # inactive carrier
+        else:
+            assert isinstance(carrier.position, int)
+            return carrier.position + self._carrier_buffers[carrier.carrier_id]
+
+    def _get_carrier_position_range(self, cid: int) -> None | float | tuple[int, int]:
         """
         Args:
             cid: The id of the carrier to identify the position of.
 
         Returns:
             None if the carrier is not active.
-            An integer for the exact needle position of the carrier if it has not been kicked.
+            An float for the exact needle position of the carrier if it has not been kicked.
             A tuple of integers for the leftmost and rightmost possible positions of the carrier if it has been kicked.
         """
         carrier = self.kickback_machine.carrier_system[cid]
@@ -212,13 +229,9 @@ class Knitout_Executer_With_Kickbacks(Knitout_Executer):
         if carriage_pass.carrier_set is None or len(carriage_pass.carrier_set) == 0:
             return None  # No carriers involved in the carriage pass, thus no conflicts.
         leftmost_position, rightmost_position = carriage_pass.carriage_pass_range()
-        # if carriage_pass.direction is Carriage_Pass_Direction.Leftward:
-        #     leftmost_position += 1  # Allow carriers at the last needle position
-        # else:  # Rightward carriage pass
-        #     rightmost_position -= 1 # Allow carriers at the last needle position.
         for cid in carriage_pass.carrier_set.carrier_ids:
             carrier_position = self._get_carrier_position_range(cid)
-            if isinstance(carrier_position, int):  # Specific position, no kickbacks
+            if isinstance(carrier_position, float):  # Specific position, no kickbacks
                 leftmost_position = min(carrier_position, leftmost_position)
                 rightmost_position = max(carrier_position, rightmost_position)
             elif isinstance(carrier_position, tuple):  # kicked carrier, add stopping distance buffer from prior kicks to the conflict zone.
@@ -352,19 +365,25 @@ class Knitout_Executer_With_Kickbacks(Knitout_Executer):
         """
         if carriage_pass.carrier_set is None:
             return []
-        carriers_cur_positions: dict[int, list[int]] = {}
+        carriers_cur_positions: dict[float, list[int]] = {}
         for cid in carriage_pass.carrier_set.carrier_ids:
-            position = self.kickback_machine.carrier_system[cid].position
+            position = self._get_carrier_position(cid)
             if position is not None:
                 if position not in carriers_cur_positions:
                     carriers_cur_positions[position] = []
                 carriers_cur_positions[position].append(cid)
+        if len(carriers_cur_positions) == 0:
+            return []
         start_position = carriage_pass.first_instruction.needle.position
         if carriage_pass.direction is Carriage_Pass_Direction.Leftward:
-            kick_carriers = {p: cids for p, cids in carriers_cur_positions.items() if p < start_position}  # all carrier positions to the left of the starting position
+            kick_position = start_position + 1
+            start_position += 0.25
+            kick_carriers = {p: cids for p, cids in carriers_cur_positions.items() if start_position < p}  # all carrier positions to the left of the starting position
         else:  # Rightward carriage pass
-            kick_carriers = {p: cids for p, cids in carriers_cur_positions.items() if p > start_position}  # all carrier positions to the right of the starting position
-        return [Kick_Instruction(start_position, carriage_pass.direction.opposite(), Yarn_Carrier_Set(cids), comment="Align carriers for next pass")
+            kick_position = start_position - 1
+            start_position -= 0.25
+            kick_carriers = {p: cids for p, cids in carriers_cur_positions.items() if p < start_position}  # all carrier positions to the right of the starting position
+        return [Kick_Instruction(kick_position, carriage_pass.direction.opposite(), Yarn_Carrier_Set(cids), comment="Align carriers for next pass")
                 for p, cids in kick_carriers.items()]
 
     def _can_add_kick_to_last_pass(self, kick: Kick_Instruction) -> bool:
@@ -426,6 +445,14 @@ class Knitout_Executer_With_Kickbacks(Knitout_Executer):
                     self._last_carrier_movement = None  # Xfers may cause conflicts with the current carrier positions.
                 elif execution.carrier_set is not None:
                     self._last_carrier_movement = execution
+                    if execution.direction is None:
+                        carrier_position_mod = 0.0
+                    elif execution.direction is Carriage_Pass_Direction.Rightward:
+                        carrier_position_mod = 0.25
+                    else:
+                        carrier_position_mod = -0.25
+                    for carrier_id in execution.carrier_set.carrier_ids:
+                        self._carrier_buffers[carrier_id] = carrier_position_mod
 
         def _update_last_carriage_pass(updated_carriage_pass: Carriage_Pass) -> None:
             for update_cp_index in range(len(kickback_process) - 1, -1, -1):

@@ -20,7 +20,7 @@ from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_D
 from virtual_knitting_machine.machine_components.yarn_management.Yarn_Carrier_Set import Yarn_Carrier_Set
 
 from knitout_to_dat_python.dat_file_structure.Dat_Codes.dat_file_color_codes import WIDTH_SPECIFIER
-from knitout_to_dat_python.dat_file_structure.Dat_Codes.option_value_colors import Hook_Operation_Color, Knit_Cancel_Color
+from knitout_to_dat_python.dat_file_structure.Dat_Codes.option_value_colors import Hook_Operation_Color, Knit_Cancel_Color, Carriage_Pass_Direction_Color
 from knitout_to_dat_python.dat_file_structure.dat_sequences.end_sequence import finish_knit_sequence
 from knitout_to_dat_python.dat_file_structure.dat_sequences.startup_sequence import startup_knit_sequence
 from knitout_to_dat_python.dat_file_structure.raster_processes.Outhook_Raster import Outhook_Raster_Pass
@@ -148,6 +148,7 @@ class Knitout_to_Dat_Converter:
             """
             sorted_needles = carriage_pass.rightward_sorted_needles()
             return int(sorted_needles[0].racked_position_on_front(cp.rack)), int(sorted_needles[-1].racked_position_on_front(cp.rack))
+
         min_left, max_right = 1000, -1
         for cp in self.knitout_executer.process:
             if isinstance(cp, Carriage_Pass):
@@ -325,7 +326,7 @@ class Knitout_to_Dat_Converter:
         self._append_to_raster_data(width_line)
 
         # Add top buffer
-        base_spacer = [[0 for _ in range(dat_width)] for _ in range(pattern_vertical_buffer)]
+        base_spacer = [[0 for _ in range(dat_width)] for _ in range(pattern_vertical_buffer + 1)]
         self._extend_raster_data(base_spacer)
 
     def _append_to_raster_data(self, row: list[int]) -> None:
@@ -412,8 +413,8 @@ class Knitout_to_Dat_Converter:
     def _get_end_rasters(self) -> list[Raster_Carriage_Pass]:
         ending_sequence = finish_knit_sequence(self.knitting_width)
         rasters = [Raster_Carriage_Pass(cp, self.machine_specification, min_knitting_slot=self.leftmost_slot, max_knitting_slot=self.rightmost_slot, stitch_number=0) for cp in ending_sequence[:-1]]
-        sinker_raster = Raster_Carriage_Pass(ending_sequence[-1], self.machine_specification,
-                                             min_knitting_slot=self.leftmost_slot, max_knitting_slot=self.rightmost_slot, stitch_number=0, drop_sinker=True)
+        sinker_raster = Raster_Carriage_Pass(ending_sequence[-1], self.machine_specification, min_knitting_slot=self.leftmost_slot, max_knitting_slot=self.rightmost_slot, stitch_number=0,
+                                             drop_sinker=True)
         rasters.append(sinker_raster)
         return rasters
 
@@ -423,7 +424,7 @@ class Knitout_to_Dat_Converter:
         width_specifier = self.knitting_width + (2 * pattern_buffer) + 2  # Knitting width + left and right buffer + 2 stop markers
         raster.extend([WIDTH_SPECIFIER] * width_specifier)
         raster.extend([0] * option_buffer)
-        assert len(raster) == self.dat_width
+        assert len(raster) == self.dat_width, f"Raster is {len(raster)} pixels wide, but expected {self.dat_width}"
         return raster
 
     def _get_pattern_rasters(self) -> list[Raster_Carriage_Pass]:
@@ -434,21 +435,6 @@ class Knitout_to_Dat_Converter:
         raster_passes: list[Raster_Carriage_Pass] = []
         inhook_carriers: set[int] = set()
         current_machine_state = Knitting_Machine(self.machine_specification)
-        last_carriage_position = None
-
-        def _return_carriage_by_knit_cancel(cp: Carriage_Pass, last_cp_position: None | int) -> Knit_Cancel_Color:
-            if cp.xfer_pass:
-                return Knit_Cancel_Color.Knit_Cancel
-            elif last_cp_position is None:  # Carriage has not been moved yet
-                return Knit_Cancel_Color.Standard
-            start_position = cp.first_instruction.needle.position
-            if last_cp_position == start_position:  # Carriage is aligned for next knitting operation in either direction.
-                return Knit_Cancel_Color.Standard
-            elif ((cp.direction is Carriage_Pass_Direction.Leftward and last_cp_position < start_position)  # leftward carriage pass starts to the right of carriage pass's first operation
-                  or (cp.direction is Carriage_Pass_Direction.Rightward and last_cp_position > start_position)):  # rightward carriage pass starts to the left of carriage pass's first operation
-                return Knit_Cancel_Color.Carriage_Move
-            else:
-                return Knit_Cancel_Color.Standard
 
         pause_after_next_pass: bool = False
         for execution in self.knitout_executer.process:
@@ -479,11 +465,8 @@ class Knitout_to_Dat_Converter:
                         if cid in inhook_carriers:
                             hook_operation = Hook_Operation_Color.In_Hook_Operation
                             inhook_carriers.remove(cid)
-                knit_cancel_color = _return_carriage_by_knit_cancel(carriage_pass, last_carriage_position)
-                if not carriage_pass.xfer_pass:  # update carriage position for determining knit cancel.
-                    last_carriage_position = carriage_pass.last_needle.position
                 raster_pass = Raster_Carriage_Pass(carriage_pass, self.machine_specification, min_knitting_slot=self.leftmost_slot, max_knitting_slot=self.rightmost_slot,
-                                                   hook_operation=hook_operation, knit_cancel=knit_cancel_color, pause=pause_after_next_pass)
+                                                   hook_operation=hook_operation, pause=pause_after_next_pass)
                 pause_after_next_pass = False  # reset pause after it has been applied to an instruction.
                 raster_passes.append(raster_pass)
                 carriage_pass.execute(current_machine_state)  # update teh machine state as the raster progresses
@@ -493,6 +476,15 @@ class Knitout_to_Dat_Converter:
         if self._leftmost_slot < 0:
             for raster_pass in raster_passes:
                 raster_pass.shift_slot_colors(abs(self._leftmost_slot))
+
+        # update carriage move (knit-cancel) values based on carriage pass directions.
+        last_color = Carriage_Pass_Direction_Color.Unspecified
+        for raster_pass in raster_passes:
+            direction_color = raster_pass.direction_color
+            if direction_color is not Carriage_Pass_Direction_Color.Unspecified:
+                if last_color == direction_color:
+                    raster_pass.knit_cancel = Knit_Cancel_Color.Carriage_Move  # Move carriage to return for repeated movement in same direction.
+                last_color = direction_color
         return raster_passes
 
     def _raster_outhook(self, current_machine_state: Knitting_Machine, outhook_instruction: Outhook_Instruction) -> list[Soft_Miss_Raster_Pass]:
@@ -524,8 +516,7 @@ class Knitout_to_Dat_Converter:
         assert isinstance(release_carrier_position, int), f"Cannot release a carrier that has no position: {release_instruction.carrier_id}"
         if current_machine_state.carrier_system.hook_input_direction is current_machine_state.carriage.last_direction:  # Add a miss pass to align the carriage for correct release direction.
             kick_to_release = Kick_Instruction(release_carrier_position, ~current_machine_state.carrier_system.hook_input_direction, comment="Kick to set release direction.")
-            soft_miss_pass = Soft_Miss_Raster_Pass(kick_to_release, self.machine_specification, min_knitting_slot=self.leftmost_slot, max_knitting_slot=self.rightmost_slot,
-                                                   knit_cancel=Knit_Cancel_Color.Carriage_Move)
+            soft_miss_pass = Soft_Miss_Raster_Pass(kick_to_release, self.machine_specification, min_knitting_slot=self.leftmost_slot, max_knitting_slot=self.rightmost_slot)
             release_passes.append(soft_miss_pass)
         releasehook_pass = Releasehook_Raster_Pass(release_carrier_position, current_machine_state.carrier_system.hook_input_direction, self.machine_specification,
                                                    min_knitting_slot=self.leftmost_slot, max_knitting_slot=self.rightmost_slot)

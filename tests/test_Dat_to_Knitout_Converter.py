@@ -225,7 +225,7 @@ class TestDat_to_Knitout_Converter(TestCase):
     def test_all_needle_racked(self):
         test_name = 'all_needle_racked'
         o_py, o_js, py_js = self.compare_dats_by_knitout('all_needle_racked.ks', '%s' % test_name,
-                                                         c=1, pattern_width=10)
+                                                         c=1, pattern_width=10, pattern_height=10)
         print(f"# Compare Shift Original {test_name}.k with Python->Dat->Knitout Output")
         differ = KnitoutDiffer(f'{test_name}.k', f'{test_name}_from_py.k', shift_file2=1)
         original_to_py_result = differ.get_diff_results()
@@ -242,3 +242,17 @@ class TestDat_to_Knitout_Converter(TestCase):
         else:
             original_to_js_result.verbose_report()
         assert py_js.are_equivalent, "Javascript and Python code differ"
+
+    def test_weird_carriage_moves(self):
+        o_py, o_js, py_js = self.compare_dats_by_knitout('weird_carriage_moves.ks', 'carriage_moves')
+
+        assert o_py.are_functionally_equivalent, "Original and Python code differ"
+        assert o_js.are_functionally_equivalent, "Original and Javascript code differ"
+        assert py_js.are_functionally_equivalent, "Javascript and Python code differ"
+
+    def test_plate_row(self):
+        o_py, o_js, py_js = self.compare_dats_by_knitout('plate_row.ks', 'plate_row')
+
+        assert o_py.are_functionally_equivalent, "Original and Python code differ"
+        assert o_js.are_functionally_equivalent, "Original and Javascript code differ"
+        assert py_js.are_functionally_equivalent, "Javascript and Python code differ"

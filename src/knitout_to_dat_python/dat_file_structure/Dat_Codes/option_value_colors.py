@@ -100,8 +100,8 @@ class Hook_Operation_Color(Enum):
 
 class Knit_Cancel_Color(Enum):
     """Enumeration of color options for the knit cancel setting."""
-    Knit_Cancel = 1
-    Carriage_Move = 2
+    Knit_Cancel = 1  # Used in Transfers
+    Carriage_Move = 2  # Used if a carriage needs to repeat its last direction
     Standard = 0
 
     def __str__(self) -> str:

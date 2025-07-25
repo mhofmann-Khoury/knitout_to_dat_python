@@ -262,7 +262,6 @@ class Knitout_Difference_Block:
         report.append("--------------------------------------------------------")
         return report
 
-    @property
     def can_be_rearranged(self) -> bool:
         """
         Given that the block only contains one carriage pass of instructions on either side,
@@ -291,7 +290,7 @@ class Knitout_Difference_Block:
         """
         if self.change_type is Knitout_Difference_Block_Tag.equal:
             return False  # Equal diffs means there is no difference, let alone a significant difference.
-        elif self.can_be_rearranged:  # could be xfer or all-needle rearrangement
+        elif self.can_be_rearranged():  # could be xfer or all-needle rearrangement
             if self.is_transfer_only_block():
                 return False  # This is a block of re_arrangeable transfers.
             elif self.is_equivalent_all_needle():
@@ -354,7 +353,7 @@ class Knitout_Diff_Result:
         for block in self.operation_diffs:
             if block.is_significant:
                 self.significant_diffs.append(block)
-            elif block.is_transfer_only_block() and block.can_be_rearranged:
+            elif block.is_transfer_only_block() and block.can_be_rearranged():
                 self.transfer_order_diffs.append(block)
             elif block.is_equivalent_all_needle():
                 self.all_needle_order_diffs.append(block)
@@ -771,7 +770,7 @@ class KnitoutDiffer:
             if len(block_diffs) > 0:  # some differences, try rearranging
                 block_diff = Knitout_Difference_Block(Knitout_Difference_Block_Tag.replace, block_1, block_2,
                                                       block_1[0].line_number, block_1[-1].line_number, block_2[0].line_number, block_2[-1].line_number)
-                if (block_diff.can_be_rearranged and
+                if (block_diff.can_be_rearranged() and
                         (block_diff.is_transfer_only_block() or block_diff.is_equivalent_all_needle())):
                     diffs.append(block_diff)
                     continue  # add this instead of the original diffs.
@@ -783,30 +782,12 @@ class KnitoutDiffer:
             remaining_ops_2 = []
             for b in self._operations2_blocks[len(self._operations2_blocks):]:
                 remaining_ops_2.extend(b)
-            normalized_block1_remainder = [l.get_normalized_string(ignore_comments=self.ignore_comments) for l in remaining_ops_1]
-            normalized_block2_remainder = [l.get_normalized_string(ignore_comments=self.ignore_comments) for l in remaining_ops_2]
-            matcher = difflib.SequenceMatcher(None, normalized_block1_remainder, normalized_block2_remainder)
-            for tag, i1, i2, j1, j2 in matcher.get_opcodes():
-                if tag == 'equal':
-                    continue
-                if i1 >= len(remaining_ops_1):
-                    start1 = remaining_ops_1[-1].line_number + 1
-                else:
-                    start1 = remaining_ops_1[i1].line_number
-                if i2 >= len(remaining_ops_1):
-                    end1 = remaining_ops_1[-1].line_number + 1
-                else:
-                    end1 = remaining_ops_1[i2].line_number
-                if j1 >= len(remaining_ops_2):
-                    start2 = remaining_ops_2[-1].line_number + 1
-                else:
-                    start2 = remaining_ops_2[j1].line_number
-                if j2 >= len(remaining_ops_2):
-                    end2 = remaining_ops_2[-1].line_number + 1
-                else:
-                    end2 = remaining_ops_2[j2].line_number
-                diffs.append(Knitout_Difference_Block(tag, remaining_ops_1[i1:i2], remaining_ops_2[j1:j2],
-                                                      start1, end1, start2, end2))
+            if len(remaining_ops_1) > 0:
+                diffs.append(Knitout_Difference_Block(Knitout_Difference_Block_Tag.insert, remaining_ops_1, remaining_ops_2,
+                                                      remaining_ops_1[0].line_number, remaining_ops_1[-1].line_number, self._lines2[-1].line_number, self._lines2[-1].line_number))
+            if len(remaining_ops_2) > 0:
+                diffs.append(Knitout_Difference_Block(Knitout_Difference_Block_Tag.delete, remaining_ops_1, remaining_ops_2,
+                                                      self._lines1[-1].line_number, self._lines1[-1].line_number, remaining_ops_2[0].line_number, remaining_ops_2[-1].line_number))
         return diffs
 
     @staticmethod

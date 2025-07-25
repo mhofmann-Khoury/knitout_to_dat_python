@@ -1,8 +1,15 @@
 import cast_ons;
 
 with Carrier as c:{
-	cast_ons.alt_tuck_cast_on(pattern_width);
-	cast_ons.alt_tuck_cast_on(pattern_width, is_front=False);
+	in Leftward direction:{
+		tuck Front_Needles[1:pattern_width:2];
+		tuck Back_Needles[0:pattern_width:2];
+	}
+	in reverse direction:{
+		tuck Front_Needles[0:pattern_width:2];
+		tuck Back_Needles[1:pattern_width:2];
+	}
+	releasehook;
 	for _ in range(pattern_height):{
 		in reverse direction:{
 			knit Front_Loops;

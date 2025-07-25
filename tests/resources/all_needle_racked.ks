@@ -1,33 +1,52 @@
 import cast_ons;
 
 with Carrier as c:{
-	cast_ons.alt_tuck_cast_on(pattern_width, tuck_lines=1, knit_lines = 0);
-	cast_ons.alt_tuck_cast_on(pattern_width, is_front=False, tuck_lines=1, knit_lines = 0);
-	in reverse direction:{
-		knit Loops;
+	in Leftward direction:{
+		tuck Front_Needles[1:pattern_width:2];
+		tuck Back_Needles[0:pattern_width:2];
 	}
 	in reverse direction:{
-		knit Loops;
+		tuck Front_Needles[0:pattern_width:2];
+		tuck Back_Needles[1:pattern_width:2];
 	}
-	Rack = 1;
-	in reverse direction:{
-		knit Loops;
+	releasehook;
+	for _ in range(pattern_height):{
+		in reverse direction:{
+			knit Loops;
+		}
+		in reverse direction:{
+			knit Loops;
+		}
 	}
-	in reverse direction:{
-		knit Loops;
+	with Rack as 1:{
+		 for _ in range(pattern_height):{
+			in reverse direction:{
+				knit Loops;
+			}
+			in reverse direction:{
+				knit Loops;
+			}
+		}
 	}
-	Rack = -1;
-	in reverse direction:{
-		knit Loops;
+	with Rack as -1:{
+		 for _ in range(pattern_height):{
+			in reverse direction:{
+				knit Loops;
+			}
+			in reverse direction:{
+				knit Loops;
+			}
+		}
 	}
-	in reverse direction:{
-		knit Loops;
+
+	with Rack as 0:{
+		 for _ in range(pattern_height):{
+			in reverse direction:{
+				knit Loops;
+			}
+			in reverse direction:{
+				knit Loops;
+			}
+		}
 	}
-//	Rack = 0;
-//	in reverse direction:{
-//		knit Loops;
-//	}
-//	in reverse direction:{
-//		knit Loops;
-//	}
 }
