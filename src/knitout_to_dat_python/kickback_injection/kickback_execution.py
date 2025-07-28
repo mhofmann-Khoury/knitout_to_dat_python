@@ -375,15 +375,22 @@ class Knitout_Executer_With_Kickbacks(Knitout_Executer):
         if len(carriers_cur_positions) == 0:
             return []
         start_position = carriage_pass.first_instruction.needle.position
+        kick_carriers = {}
         if carriage_pass.direction is Carriage_Pass_Direction.Leftward:
-            kick_position = start_position + 1
-            start_position += 0.25
-            kick_carriers = {p: cids for p, cids in carriers_cur_positions.items() if start_position < p}  # all carrier positions to the left of the starting position
+            start_position += .75
+            for p, cids in carriers_cur_positions.items():
+                if p < start_position:
+                    kick_carriers[int(start_position)] = cids
+                elif p == start_position:
+                    kick_carriers[int(start_position) + 1] = cids
+            # kick_carriers = {p: cids for p, cids in carriers_cur_positions.items() if p <= start_position}  # all carrier positions to the left of the starting position
         else:  # Rightward carriage pass
-            kick_position = start_position - 1
-            start_position -= 0.25
-            kick_carriers = {p: cids for p, cids in carriers_cur_positions.items() if p < start_position}  # all carrier positions to the right of the starting position
-        return [Kick_Instruction(kick_position, carriage_pass.direction.opposite(), Yarn_Carrier_Set(cids), comment="Align carriers for next pass")
+            for p, cids in carriers_cur_positions.items():
+                if start_position+.25 == p:
+                    kick_carriers[start_position-1] = cids
+                elif start_position < p:
+                    kick_carriers[start_position] = cids
+        return [Kick_Instruction(p, carriage_pass.direction.opposite(), Yarn_Carrier_Set(cids), comment="Align carriers for next pass")
                 for p, cids in kick_carriers.items()]
 
     def _can_add_kick_to_last_pass(self, kick: Kick_Instruction) -> bool:
@@ -448,9 +455,9 @@ class Knitout_Executer_With_Kickbacks(Knitout_Executer):
                     if execution.direction is None:
                         carrier_position_mod = 0.0
                     elif execution.direction is Carriage_Pass_Direction.Rightward:
-                        carrier_position_mod = 0.25
+                        carrier_position_mod = 1.25
                     else:
-                        carrier_position_mod = -0.25
+                        carrier_position_mod = -.25
                     for carrier_id in execution.carrier_set.carrier_ids:
                         self._carrier_buffers[carrier_id] = carrier_position_mod
 
