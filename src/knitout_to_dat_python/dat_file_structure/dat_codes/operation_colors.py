@@ -5,7 +5,8 @@ from enum import Enum
 from knitout_interpreter.knitout_operations.knitout_instruction import Knitout_Instruction_Type
 from knitout_interpreter.knitout_operations.needle_instructions import Needle_Instruction, Tuck_Instruction, Knit_Instruction, Xfer_Instruction, Split_Instruction, Miss_Instruction
 
-from knitout_to_dat_python.kickback_injection.kickback_execution import Kick_Instruction
+
+from knitout_interpreter.knitout_operations.kick_instruction import Kick_Instruction
 
 
 class Operation_Color(Enum):

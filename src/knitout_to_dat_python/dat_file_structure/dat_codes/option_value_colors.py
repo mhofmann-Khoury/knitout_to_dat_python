@@ -6,7 +6,7 @@ from knitout_interpreter.knitout_execution_structures.Carriage_Pass import Carri
 from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import Carriage_Pass_Direction
 from virtual_knitting_machine.machine_components.yarn_management.Yarn_Carrier_Set import Yarn_Carrier_Set
 
-from knitout_to_dat_python.dat_file_structure.Dat_Codes.dat_file_color_codes import NO_CARRIERS
+from knitout_to_dat_python.dat_file_structure.dat_codes.dat_file_color_codes import NO_CARRIERS
 
 
 class Link_Process_Color(Enum):

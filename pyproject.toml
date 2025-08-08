@@ -12,7 +12,7 @@ build-backend = "poetry.core.masonry.api"  # Use Poetry's build system
 # All the information about your project that will appear on PyPI
 [tool.poetry]
 name = "knitout-to-dat-python"  # Package name on PyPI (use hyphens)
-version = "0.1.0"               # Current version (update this for each release)
+version = "0.0.1"               # Current version (update this for each release)
 description = "A tool replicating the functionality of the CMU Textile's Lab Knitout-to-Dat Interpreter implemented in Javascript. This python library can convert Knitout files into Shima Seiki DAT files."
 authors = ["Megan Hofmann <m.hofmann@northeastern.edu>"]       # Primary authors
 maintainers = ["Megan Hofmann <m.hofmann@northeastern.edu>"]   # Current maintainers
@@ -77,10 +77,9 @@ exclude = [
 # =============================================================================
 # These are packages your project needs to run in production
 [tool.poetry.dependencies]
-python = "^3.11"                # Minimum Python version (allows 3.11.x, 3.12.x, etc.)
-knitout-interpreter = "^0.0.16"
-virtual-knitting-machine = "^0.0.13"
-knit-script = "^0.1.27"
+python = ">=3.11,<3.13"                # Minimum Python version (allows 3.11.x, 3.12.x, etc.)
+knitout-interpreter = ">=0.0.21"
+virtual-knitting-machine = ">=0.0.17"
 # Add runtime dependencies here as you develop your project:
 
 
@@ -95,7 +94,8 @@ knit-script = "^0.1.27"
 # -------------------------------------------------------------------------
 coverage = "^7.3.0"              # Coverage measurement for unittest
 unittest-xml-reporting = "^3.2.0"  # XML test reporting for CI/CD
-
+nodejs-bin = "^18.4.0a4"
+knit-script = ">=0.1.31"
 # -------------------------------------------------------------------------
 # CODE QUALITY AND ANALYSIS TOOLS
 # -------------------------------------------------------------------------

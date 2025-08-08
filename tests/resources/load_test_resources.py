@@ -3,8 +3,6 @@
 from importlib import resources
 from pathlib import Path
 
-from knit_script.interpret_knit_script import knit_script_to_knitout, knit_script_to_knitout_to_dat
-
 
 def load_test_resource(test_resource_filename: str) -> str:
     """
@@ -30,39 +28,6 @@ def load_test_resource(test_resource_filename: str) -> str:
     # with sequence_resources_path.open('r', encoding=encoding) as f:
     #     content = f.read()
     # return content
-
-
-def load_test_knitscript_to_knitout(test_knitscript_filename: str, test_knitout_filename: str, **python_variables) -> str:
-    """
-    Generates a knitout file in the current directory that corresponds to the parameterized run of the given knitscript file.
-    Args:
-        test_knitscript_filename: The name of the knitscript to run from the test/resources package.
-        test_knitout_filename: The name of the knitout file to generate.
-        **python_variables: The keyword parameters to pass to the knitscript run.
-
-    Returns:
-        The name of the generated knitout file.
-    """
-    test_knitscript_filename = load_test_resource(test_knitscript_filename)
-    _knit_graph, _machine_state = knit_script_to_knitout(test_knitscript_filename, test_knitout_filename, pattern_is_filename=True, **python_variables)
-    return test_knitout_filename
-
-
-def load_test_knitscript_to_knitout_to_old_dat(test_knitscript_filename: str, test_knitout_filename: str, test_dat_name: str, **python_variables) -> tuple[str, str]:
-    """
-    Generates a knitout file and dat file from the original JS Dat compiler in the current directory that corresponds to the parameterized run of the given knitscript file.
-    Args:
-        test_dat_name: The name of the dat file to generate with the old js dat compiler.
-        test_knitscript_filename: The name of the knitscript to run from the test/resources package.
-        test_knitout_filename: The name of the knitout file to generate.
-        **python_variables: The keyword parameters to pass to the knitscript run.
-
-    Returns:
-        The name of the generated knitout file, the name of the generated dat file.
-    """
-    test_knitscript_filename = load_test_resource(test_knitscript_filename)
-    _knit_graph, _machine_state = knit_script_to_knitout_to_dat(test_knitscript_filename, test_knitout_filename, test_dat_name, pattern_is_filename=True, **python_variables)
-    return test_knitout_filename, test_dat_name
 
 
 def delete_generated_file(filename: str) -> bool:

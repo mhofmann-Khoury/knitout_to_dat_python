@@ -1,12 +1,13 @@
 """Test suite for adding kickbacks to a knitout execution - converted to unittest."""
 import unittest
 
+from knitout_interpreter.knitout_execution_structures import Carriage_Pass
 from knitout_interpreter.knitout_language.Knitout_Parser import parse_knitout
 from virtual_knitting_machine.Knitting_Machine import Knitting_Machine
 from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import Carriage_Pass_Direction
+from knitout_interpreter.knitout_operations.kick_instruction import Kick_Instruction
 
-from knitout_to_dat_python.dat_file_structure.dat_sequences.startup_sequence import Miss_Carriage_Pass
-from knitout_to_dat_python.kickback_injection.kickback_execution import Knitout_Executer_With_Kickbacks, Kick_Instruction, Carriage_Pass_with_Kick
+from knitout_to_dat_python.kickback_injection.kickback_execution import Knitout_Executer_With_Kickbacks
 
 
 class TestKickbackExecution(unittest.TestCase):
@@ -40,7 +41,7 @@ class TestKickbackExecution(unittest.TestCase):
         for execution in kickback_executer.process:
             if isinstance(execution, Kick_Instruction):
                 kicks.append(execution)
-            elif isinstance(execution, Carriage_Pass_with_Kick) or isinstance(execution, Miss_Carriage_Pass):
+            elif isinstance(execution, Carriage_Pass):
                 kicks.extend(instruction for instruction in execution if isinstance(instruction, Kick_Instruction))
         return kicks
 

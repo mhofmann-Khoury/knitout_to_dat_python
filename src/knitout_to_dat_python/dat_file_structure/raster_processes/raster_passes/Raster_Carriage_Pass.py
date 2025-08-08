@@ -9,11 +9,11 @@ from virtual_knitting_machine.Knitting_Machine_Specification import Knitting_Mac
 from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import Carriage_Pass_Direction
 from virtual_knitting_machine.machine_components.needles.Needle import Needle
 
-from knitout_to_dat_python.dat_file_structure.Dat_Codes.operation_colors import Operation_Color, get_operation_color
-from knitout_to_dat_python.dat_file_structure.Dat_Codes.option_lines import Left_Option_Lines, Right_Option_Lines
-from knitout_to_dat_python.dat_file_structure.Dat_Codes.option_value_colors import Drop_Sinker_Color, Hook_Operation_Color, Knit_Cancel_Color, Rack_Direction_Color, Rack_Pitch_Color, \
+from knitout_to_dat_python.dat_file_structure.dat_codes.operation_colors import Operation_Color, get_operation_color
+from knitout_to_dat_python.dat_file_structure.dat_codes.option_lines import Left_Option_Lines, Right_Option_Lines
+from knitout_to_dat_python.dat_file_structure.dat_codes.option_value_colors import Drop_Sinker_Color, Hook_Operation_Color, Knit_Cancel_Color, Rack_Direction_Color, Rack_Pitch_Color, \
     get_carriage_pass_direction_color, Presser_Setting_Color, carriers_to_int, Amiss_Split_Hook_Color, Pause_Color, Link_Process_Color, Carriage_Pass_Direction_Color
-from knitout_to_dat_python.dat_file_structure.Dat_Codes.dat_file_color_codes import STOPPING_MARK, OPTION_LINE_COUNT
+from knitout_to_dat_python.dat_file_structure.dat_codes.dat_file_color_codes import STOPPING_MARK, OPTION_LINE_COUNT
 
 
 class Raster_Carriage_Pass:
@@ -48,7 +48,6 @@ class Raster_Carriage_Pass:
         self._knit_cancel: Knit_Cancel_Color = Knit_Cancel_Color.Standard
         self._hook_operation: Hook_Operation_Color = hook_operation
         if self.hook_operation is Hook_Operation_Color.In_Hook_Operation:
-            # Todo: Bring this validation into knitscript and knitout interpreter.
             assert self.carriage_pass.direction is Carriage_Pass_Direction.Leftward, f"Knitout Error: Cannot inhook on a rightward knitting pass."
         self.max_knitting_slot: int = max_knitting_slot
         self.min_knitting_slot: int = min_knitting_slot
@@ -245,7 +244,7 @@ class Raster_Carriage_Pass:
         """
         Sets the speed option lines.
         """
-        speed_value = 0 if self.speed_number == 0 else self.speed_number + 10  # Todo: why adding 10 to larger speed values.
+        speed_value = 0 if self.speed_number == 0 else self.speed_number + 10  # Note: 10 added in js-dat compiler. Not sure why.
         self.left_option_line_settings[Left_Option_Lines.Knit_Speed] = speed_value
         self.left_option_line_settings[Left_Option_Lines.Transfer_Speed] = speed_value  # Transfer speed
 
@@ -259,9 +258,7 @@ class Raster_Carriage_Pass:
         """
         Set the stitch numbers for transfers.
         """
-        pass  # Todo: How is this used in the JS compiler? This doesn't seem to apply in test samples.
-        # if self.carriage_pass.xfer_pass and self.stitch_number != 0:
-        #     self.right_option_line_settings[Right_Option_Lines.Apply_Stitch_to_Transfer] = TRANSFER_STITCH_NUMBER  # Apply stitch number to transfer
+        pass  # Note: How is this used in the JS compiler? This doesn't seem to apply in test samples.
 
     def _set_presser_mode_option(self) -> None:
         """

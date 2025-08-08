@@ -8,7 +8,7 @@ with Carrier as 1:{
 	releasehook;
 }
 with Carrier as 2:{
-	in reverse direction:{
+	in Leftward direction:{
 		knit Loops;
 	}
 	in reverse direction:{

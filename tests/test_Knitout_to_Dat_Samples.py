@@ -1,13 +1,8 @@
 """Test cases for the Dat_to_Knitout_Converter class."""
-import os
 from unittest import TestCase
 
-from knitout_interpreter.knitout_compilers.compile_knitout import compile_knitout
-from knitout_interpreter.knitout_language.Knitout_Parser import parse_knitout
-from knitout_interpreter.knitout_operations.Rack_Instruction import Rack_Instruction
-
 from knitout_to_dat_python.dat_file_structure.knitout_to_dat_converter import Knitout_to_Dat_Converter
-from tests.resources.load_test_resources import load_test_knitscript_to_knitout_to_old_dat
+from tests.resources.load_ks_resources import load_test_knitscript_to_knitout_to_old_dat
 
 
 class TestDat_to_Knitout_Converter(TestCase):
@@ -23,16 +18,9 @@ class TestDat_to_Knitout_Converter(TestCase):
             output_prefix: The prefix for the knitout and dat files.
             **ks_kwargs: The keyword arguments passed to the knitscript compiler.
         """
-        original_k_file, js_dat_file_name = load_test_knitscript_to_knitout_to_old_dat(ks_file, f"{output_prefix}.k", f"{output_prefix}_js.dat", **ks_kwargs)
-        if not os.path.exists(js_dat_file_name):
-            print(f"JS Dat file {js_dat_file_name} Failed to Compile. Attempting to fix negative all needle rackings")
-            k_file_lines = parse_knitout(original_k_file, pattern_is_file=True)
-            fixed_rack_lines = [Rack_Instruction(line.rack + 0.25, line.comment) if isinstance(line, Rack_Instruction) and line.rack < 0 and line.all_needle_rack
-                                else line
-                                for line in k_file_lines]
-            with open(original_k_file, 'w') as f:
-                f.writelines([str(l) for l in fixed_rack_lines])
-            compile_knitout(original_k_file, js_dat_file_name)
+        original_k_file = f"{output_prefix}.k"
+        js_dat_file_name = f"{output_prefix}_js.dat"
+        _clean_k_file = load_test_knitscript_to_knitout_to_old_dat(ks_file, original_k_file, js_dat_file_name, **ks_kwargs)
 
         dat_file_name = f"{output_prefix}_py.dat"
         dat_file = Knitout_to_Dat_Converter(original_k_file, dat_file_name, knitout_in_file=True)

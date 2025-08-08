@@ -8,14 +8,14 @@ from knitout_interpreter.knitout_operations.needle_instructions import Needle_In
 from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import Carriage_Pass_Direction
 from virtual_knitting_machine.machine_components.needles.Needle import Needle
 from virtual_knitting_machine.machine_components.yarn_management.Yarn_Carrier_Set import Yarn_Carrier_Set
+from knitout_interpreter.knitout_operations.kick_instruction import Kick_Instruction
 
-from knitout_to_dat_python.dat_file_structure.Dat_Codes.operation_colors import Operation_Color
-from knitout_to_dat_python.dat_file_structure.Dat_Codes.option_lines import Left_Option_Lines, Right_Option_Lines
-from knitout_to_dat_python.dat_file_structure.Dat_Codes.option_value_colors import Hook_Operation_Color, Carriage_Pass_Direction_Color, pixel_to_carriers, Rack_Direction_Color, Amiss_Split_Hook_Color, \
+from knitout_to_dat_python.dat_file_structure.dat_codes.operation_colors import Operation_Color
+from knitout_to_dat_python.dat_file_structure.dat_codes.option_lines import Left_Option_Lines, Right_Option_Lines
+from knitout_to_dat_python.dat_file_structure.dat_codes.option_value_colors import Hook_Operation_Color, Carriage_Pass_Direction_Color, pixel_to_carriers, Rack_Direction_Color, Amiss_Split_Hook_Color, \
     Pause_Color
-from knitout_to_dat_python.dat_file_structure.Dat_Codes.dat_file_color_codes import STOPPING_MARK, OPTION_LINE_COUNT
-from knitout_to_dat_python.dat_file_structure.dat_sequences.end_sequence import All_Needle_Pass
-from knitout_to_dat_python.kickback_injection.kickback_execution import Kick_Instruction, Carriage_Pass_with_Kick
+from knitout_to_dat_python.dat_file_structure.dat_codes.dat_file_color_codes import STOPPING_MARK, OPTION_LINE_COUNT
+from knitout_to_dat_python.kickback_injection.carriage_pass_with_kick import Carriage_Pass_with_Kick
 
 
 class Pixel_Carriage_Pass_Converter:
@@ -308,7 +308,7 @@ class Pixel_Carriage_Pass_Converter:
             slot_instructions = self.get_instructions_of_slot(slot)
             instructions_in_order.extend(slot_instructions)
         if self.is_all_needle_rack and direction is not None:
-            carriage_pass = All_Needle_Pass(instructions_in_order[0], self.rack)
+            carriage_pass = Carriage_Pass(instructions_in_order[0], self.rack, all_needle_rack=True)
         else:
             carriage_pass = Carriage_Pass(instructions_in_order[0], self.rack, all_needle_rack=False)
         for instruction in instructions_in_order[1:]:

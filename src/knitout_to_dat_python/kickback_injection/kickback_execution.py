@@ -1,130 +1,18 @@
 """
 Subclass of Knitout_Executer that introduces kickbacks for carrier management when creating Dat files.
 """
-
+from knitout_interpreter import Knitout_Executer
 from knitout_interpreter.knitout_execution_structures.Carriage_Pass import Carriage_Pass
 from knitout_interpreter.knitout_operations.Knitout_Line import Knitout_Line
 from knitout_interpreter.knitout_operations.Pause_Instruction import Pause_Instruction
 from knitout_interpreter.knitout_operations.carrier_instructions import Knitout_Instruction, Yarn_Carrier_Instruction, Releasehook_Instruction
-from knitout_interpreter.knitout_operations.needle_instructions import Miss_Instruction, Needle_Instruction
+from knitout_interpreter.knitout_operations.kick_instruction import Kick_Instruction
+from knitout_interpreter.knitout_operations.needle_instructions import Needle_Instruction
 from virtual_knitting_machine.Knitting_Machine import Knitting_Machine
 from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import Carriage_Pass_Direction
-from virtual_knitting_machine.machine_components.needles.Needle import Needle
 from virtual_knitting_machine.machine_components.yarn_management.Yarn_Carrier_Set import Yarn_Carrier_Set
 
-from knitout_to_dat_python.dat_file_structure.dat_sequences.startup_sequence import Miss_Carriage_Pass
-from knitout_to_dat_python.kickback_injection.fixed_knitout_execution import Knitout_Executer
-
-
-class Kick_Instruction(Miss_Instruction):
-    """
-        A subclass of the Miss_Instruction used to mark kickbacks added in dat-complication process.
-    """
-
-    def __init__(self, position: int, direction: str | Carriage_Pass_Direction, cs: Yarn_Carrier_Set | None = None, comment: None | str = None):
-        assert 0 <= position <= 540, f"Cannot add a kickback beyond the bounds of the needle bed at position {position}"
-        super().__init__(needle=Needle(is_front=True, position=position), direction=direction, cs=cs, comment=comment)
-
-    @property
-    def no_carriers(self) -> bool:
-        """
-        Returns:
-            True if this is a soft-miss kickback with no carriers.
-            No carriers can be set with an null carrier set or a carrier set with a 0 carrier (not a valid index for a carrier).
-        """
-        return self.carrier_set is None or 0 in self.carrier_set.carrier_ids
-
-
-class All_Needle_Carriage_Pass(Carriage_Pass):
-    # Todo: Fix this bug in the Carriage_Pass class.
-    def __init__(self, first_instruction: Needle_Instruction, rack: int):
-        super().__init__(first_instruction, rack, all_needle_rack=True)
-
-    def can_add_instruction(self, instruction: Needle_Instruction, rack: int, all_needle_rack: bool) -> bool:
-        """
-
-        :param instruction: The instruction to consider adding to the carriage pass.
-        :param rack: The required racking of this instruction.
-        :param all_needle_rack: The all_needle racking requirement for this instruction.
-        :return: True if the instruction can be added to this carriage pass. Otherwise, False.
-        """
-        if rack != self.rack:
-            return False
-        elif all_needle_rack != self.all_needle_rack:
-            return False
-        elif instruction.direction != self._direction:
-            return False
-        elif instruction.carrier_set != self.carrier_set:
-            return False
-        elif not self.compatible_with_pass_type(instruction):
-            return False
-        elif self._direction is None:
-            if instruction.needle in self._needles_to_instruction:
-                return False
-            elif instruction.needle_2 in self._needles_to_instruction:
-                return False
-        elif instruction.needle in self._needles_to_instruction:  # already has an operation at this needle:
-            return False
-        elif self.all_needle_rack and instruction.needle.position == self.last_needle.position and instruction.needle.is_front != self.last_needle.is_front:  # Opposite needles are all-needle rack
-            return True
-        elif not self._direction.needles_are_in_pass_direction(self.last_needle, instruction.needle, rack=rack, all_needle_rack=self.all_needle_rack):
-            return False
-        return True
-
-
-class Carriage_Pass_with_Kick(Carriage_Pass):
-    """Wrapper class for Carriage Pass that allows for kickbacks to be added to knit-tuck passes."""
-
-    def __init__(self, carriage_pass: Carriage_Pass, kicks: list[Kick_Instruction]):
-        all_instructions = list(carriage_pass.instruction_set())
-        all_instructions.extend(kicks)
-        needles_to_instruction = {i.needle: i for i in all_instructions}
-        sorted_needles = carriage_pass.direction.sort_needles(needles_to_instruction, carriage_pass.rack)
-        sorted_instructions = [needles_to_instruction[n] for n in sorted_needles]
-        super().__init__(sorted_instructions[0], carriage_pass.rack, carriage_pass.all_needle_rack)
-        for instruction in sorted_instructions[1:]:
-            _added = self.add_instruction(instruction, self.rack, self.all_needle_rack)
-            assert _added
-
-    def compatible_with_pass_type(self, instruction: Needle_Instruction) -> bool:
-        if isinstance(instruction, Kick_Instruction):
-            return True
-        else:
-            super_pass = super().compatible_with_pass_type(instruction)
-            assert isinstance(super_pass, bool)
-            return super_pass
-
-
-def _fix_process_for_all_needle_rack(process: list[Knitout_Line | Carriage_Pass]) -> list[Knitout_Line | Carriage_Pass]:
-    fixed_process = []
-    current_cp = None
-    for execution in process:
-        if isinstance(execution, Knitout_Instruction):
-            if current_cp is not None:
-                fixed_process.append(current_cp)
-            current_cp = None
-            fixed_process.append(execution)
-        elif isinstance(execution, Knitout_Line):  # comments and headers don't interrupt carriage pass merging
-            fixed_process.append(execution)
-        else:
-            assert isinstance(execution, Carriage_Pass)
-            if execution.xfer_pass or not execution.all_needle_rack:
-                if current_cp is not None:
-                    fixed_process.append(current_cp)
-                current_cp = None  # Can't extend with all needle rack
-                fixed_process.append(execution)
-            elif current_cp is None:  # Might be able to extend this but there is nothing already to extend
-                current_cp = All_Needle_Carriage_Pass(execution.first_instruction, execution.rack)
-                for instruction in execution[1:]:
-                    current_cp.add_instruction(instruction, execution.rack, execution.all_needle_rack)
-            else:  # can extend prior cp with at least the beginning of the next
-                for instruction in execution:
-                    if current_cp.can_add_instruction(instruction, execution.rack, all_needle_rack=True):
-                        current_cp.add_instruction(instruction, execution.rack, all_needle_rack=True)
-                    else:  # switch to extending a new carriage pass of the remaining instructions
-                        fixed_process.append(current_cp)
-                        current_cp = Carriage_Pass(instruction, execution.rack, all_needle_rack=True)
-    return fixed_process
+from knitout_to_dat_python.kickback_injection.carriage_pass_with_kick import Carriage_Pass_with_Kick
 
 
 class Knitout_Executer_With_Kickbacks(Knitout_Executer):
@@ -137,7 +25,6 @@ class Knitout_Executer_With_Kickbacks(Knitout_Executer):
         self.process: list[Knitout_Line | Carriage_Pass] = []
         self.executed_instructions: list[Knitout_Line] = []
         super().__init__(instructions, knitting_machine)
-        self.process = _fix_process_for_all_needle_rack(self.process)
         self.kickback_machine: Knitting_Machine = Knitting_Machine(self.knitting_machine.machine_specification)
         # track the last kicking direction of each carrier. None implies that a carrier has not been kicked since it was last used.
         self._kicked_carriers: dict[int, Carriage_Pass_Direction | None] = {carrier.carrier_id: None for carrier in self.knitting_machine.carrier_system.carriers}
@@ -386,8 +273,8 @@ class Knitout_Executer_With_Kickbacks(Knitout_Executer):
             # kick_carriers = {p: cids for p, cids in carriers_cur_positions.items() if p <= start_position}  # all carrier positions to the left of the starting position
         else:  # Rightward carriage pass
             for p, cids in carriers_cur_positions.items():
-                if start_position+.25 == p:
-                    kick_carriers[start_position-1] = cids
+                if start_position + .25 == p:
+                    kick_carriers[start_position - 1] = cids
                 elif start_position < p:
                     kick_carriers[start_position] = cids
         return [Kick_Instruction(p, carriage_pass.direction.opposite(), Yarn_Carrier_Set(cids), comment="Align carriers for next pass")
@@ -495,7 +382,7 @@ class Knitout_Executer_With_Kickbacks(Knitout_Executer):
                     _update_last_carriage_pass(add_on_cp)
                     _update_last_executed_instruction(add_on)
                 for kick in kicks_before_cp:
-                    kick_cp = Miss_Carriage_Pass(kick, rack=0, all_needle_rack=False)
+                    kick_cp = Carriage_Pass(kick, rack=0, all_needle_rack=False)
                     _add_carrier_movement(kick_cp)
                     for cid in kick.carrier_set.carrier_ids:
                         self._kicked_carriers[cid] = kick.direction
