@@ -138,11 +138,6 @@ sphinx-autodoc-typehints = "^1.24.0" # Automatically include type hints in docs
 myst-parser = "^2.0.0"              # Support for Markdown files in documentation
 
 # =============================================================================
-# ADDITIONAL PROJECT URLS
-# =============================================================================
-# Extra links that appear on your PyPI project page
-
-# =============================================================================
 # MYPY STATIC TYPE CHECKER CONFIGURATION
 # =============================================================================
 # MyPy analyzes your code for type errors without running it

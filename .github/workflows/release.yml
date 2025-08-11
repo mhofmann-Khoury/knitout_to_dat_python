@@ -69,7 +69,9 @@ jobs:
 
     - name: Validate package
       run: |
-        poetry run twine check dist/*
+        # Install twine directly with pip to avoid metadata issues
+        pip install twine>=4.0.2
+        twine check dist/*
 
     - name: Configure Poetry for PyPI
       run: |
