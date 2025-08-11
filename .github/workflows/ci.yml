@@ -249,62 +249,6 @@ jobs:
         path: dist/                   # Upload entire dist/ directory
         retention-days: 7             # Keep artifacts for 7 days
 
-  # ===========================================================================
-  # JOB 4: DOCUMENTATION BUILD
-  # ===========================================================================
-  # This job builds your project documentation using Sphinx to ensure
-  # documentation can be generated without errors
-  docs:
-    name: Build Documentation
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.12'
-
-    - name: Install Poetry
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install poetry
-
-    - name: Configure Poetry
-      run: |
-        poetry config virtualenvs.create true
-        poetry config virtualenvs.in-project true
-
-    # -------------------------------------------------------------------------
-    # STEP: Install dependencies INCLUDING documentation dependencies
-    # -------------------------------------------------------------------------
-    - name: Install dependencies
-      run: |
-        poetry install --with=docs     # Install docs dependencies (Sphinx, themes, etc.)
-
-    # -------------------------------------------------------------------------
-    # STEP: Build documentation with Sphinx
-    # -------------------------------------------------------------------------
-    - name: Build documentation
-      run: |
-        poetry run sphinx-build -b html docs/source docs/build/html -W
-      # sphinx-build: Main Sphinx command
-      # -b html: Build HTML output
-      # docs/source: Your existing source directory
-      # docs/build/html: Output directory
-      # -W: Treat warnings as errors (ensures clean documentation)
-
-    # -------------------------------------------------------------------------
-    # STEP: Upload documentation artifacts
-    # -------------------------------------------------------------------------
-    - name: Upload documentation artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: documentation           # Name for the artifact
-        path: docs/build/html/        # Upload built HTML documentation
-        retention-days: 7             # Keep for 7 days
 
 # =============================================================================
 # WHAT YOU NEED IN YOUR REPOSITORY

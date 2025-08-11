@@ -28,21 +28,38 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: Install dependencies
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: latest
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+
+    - name: Load cached venv
+      id: cached-poetry-dependencies
+      uses: actions/cache@v4
+      with:
+        path: .venv
+        key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+
+    - name: Install dependencies with Poetry
+      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
       run: |
-        python -m pip install --upgrade pip
-        pip install sphinx sphinx-rtd-theme
-        pip install -e .
+        poetry install --with docs,dev
+
+    - name: Install package in development mode
+      run: |
+        poetry run pip install -e .
 
     - name: Generate API documentation
       run: |
         cd docs
-        sphinx-apidoc -o source ../src/knitout_to_dat_python --force --separate --no-toc
+        poetry run sphinx-apidoc -o source ../src/knitout_to_dat_python --force --separate --no-toc
 
     - name: Build documentation
       run: |
         cd docs
-        sphinx-build -M html source build
+        poetry run sphinx-build -M html source build
         touch build/html/.nojekyll
 
     - name: Upload artifact
