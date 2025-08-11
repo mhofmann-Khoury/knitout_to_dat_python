@@ -1,8 +1,7 @@
 """Test cases for the Dat_to_Knitout_Converter class."""
 from unittest import TestCase
 
-from knitout_to_dat_python.dat_file_structure.Dat_to_Knitout_Converter import Dat_to_Knitout_Converter
-from knitout_to_dat_python.dat_file_structure.knitout_to_dat_converter import Knitout_to_Dat_Converter
+from knitout_to_dat_python.knitout_to_dat import knitout_to_dat, dat_to_knitout
 from tests.resources.knitout_diff import diff_knitout_files, Knitout_Diff_Result, KnitoutDiffer
 from tests.resources.load_ks_resources import load_test_knitscript_to_knitout_to_old_dat
 
@@ -28,18 +27,15 @@ class TestDat_to_Knitout_Converter(TestCase):
         clean_k_file = load_test_knitscript_to_knitout_to_old_dat(ks_file, original_k_file, js_dat_file_name, **ks_kwargs)
         # Convert original k file (not cleaned) to a DAT File using this python library
         dat_file_name = f"{output_prefix}_py.dat"
-        k_to_dat_converter = Knitout_to_Dat_Converter(original_k_file, dat_file_name, knitout_in_file=True)
-        k_to_dat_converter.process_knitout_to_dat()
+        knitout_to_dat(original_k_file, dat_file_name)
 
         # Convert the JS made dat file back to knitout
-        js_dat_converter = Dat_to_Knitout_Converter(js_dat_file_name)
         js_k_file = f"{output_prefix}_js.k"
-        js_dat_converter.write_knitout(js_k_file)
+        dat_to_knitout(js_dat_file_name, js_k_file)
 
         # Convert the Python made dat file back to knitout
-        py_dat_converter = Dat_to_Knitout_Converter(dat_file_name)
         py_k_file = f"{output_prefix}_from_py.k"
-        py_dat_converter.write_knitout(py_k_file)
+        dat_to_knitout(dat_file_name, py_k_file)
 
         print("\n#############################################################################")
         print(f"Compare KnitScript Generated Knitout <{original_k_file}> with Python->Dat->Knitout <{py_k_file}>")

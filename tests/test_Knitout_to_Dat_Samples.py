@@ -1,7 +1,7 @@
 """Test cases for the Dat_to_Knitout_Converter class."""
 from unittest import TestCase
 
-from knitout_to_dat_python.dat_file_structure.knitout_to_dat_converter import Knitout_to_Dat_Converter
+from knitout_to_dat_python.knitout_to_dat import knitout_to_dat
 from tests.resources.load_ks_resources import load_test_knitscript_to_knitout_to_old_dat
 
 
@@ -23,8 +23,7 @@ class TestDat_to_Knitout_Converter(TestCase):
         _clean_k_file = load_test_knitscript_to_knitout_to_old_dat(ks_file, original_k_file, js_dat_file_name, **ks_kwargs)
 
         dat_file_name = f"{output_prefix}_py.dat"
-        dat_file = Knitout_to_Dat_Converter(original_k_file, dat_file_name, knitout_in_file=True)
-        dat_file.process_knitout_to_dat()
+        knitout_to_dat(original_k_file, dat_file_name)
 
     def test_stst(self):
         self.generate_dats('stst.ks', 'stst',

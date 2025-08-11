@@ -1,4 +1,8 @@
-"""Module containing the Dat_to_Knitout_Converter class."""
+"""Module containing the Dat_to_Knitout_Converter class.
+
+This module provides functionality to convert Shima Seiki DAT files back into knitout instructions.
+It handles the complete reverse conversion pipeline including DAT file reading, pixel decoding, instruction reconstruction, and knitout file generation.
+"""
 import struct
 
 from knitout_interpreter.knitout_execution_structures.Carriage_Pass import Carriage_Pass
@@ -10,33 +14,62 @@ from knitout_interpreter.knitout_operations.knitout_instruction import Knitout_I
 from virtual_knitting_machine.Knitting_Machine import Knitting_Machine
 
 from knitout_to_dat_python.dat_file_structure.dat_codes.dat_file_color_codes import WIDTH_SPECIFIER
-from knitout_to_dat_python.dat_file_structure.raster_processes.Pixel_Carriage_Pass_Converter import Pixel_Carriage_Pass_Converter
+from knitout_to_dat_python.dat_file_structure.raster_carriage_passes.Pixel_Carriage_Pass_Converter import Pixel_Carriage_Pass_Converter
 
 
 class Dat_to_Knitout_Converter:
-    """
-    Class to convert a Shima Seiki Dat file to knitout instructions.
+    """Class to convert a Shima Seiki Dat file to knitout instructions.
+
+    This class provides functionality to read DAT files, parse their pixel data and option lines, and convert them back into equivalent knitout instructions.
+    It handles the complete reverse conversion pipeline including pixel decoding, instruction reconstruction, and knitout file generation.
     """
 
     def __init__(self, dat_filename: str, pattern_buffer: int = 4):
+        """Initialize a Dat_to_Knitout_Converter.
+
+        Args:
+            dat_filename (str): Path to the input DAT file to convert.
+            pattern_buffer (int, optional): Buffer space around the pattern. Defaults to 4.
+
+        Raises:
+            ValueError: If DAT file format is invalid or cannot be processed.
+            AssertionError: If raster pattern width exceeds expected pattern width.
+        """
         self.dat_filename: str = dat_filename
+        """str: Path to the DAT file being converted."""
+
         self.pixels: list[list[int]] = []
+        """list[list[int]]: 2D array of pixel values from the DAT file."""
+
         self._read_dat_file_to_pixels()
         self._trim_pixels_to_pattern()
+
         self.expected_pattern_width: int = -1
+        """int: The expected width of the knitting pattern."""
+
         self._set_expected_pattern_width(pattern_buffer)
         self._trim_startup_sequence()
         self._trim_end_sequence()
+
         self.rasters: list[Pixel_Carriage_Pass_Converter] = [Pixel_Carriage_Pass_Converter(row, pattern_buffer=pattern_buffer) for row in self.pixels]
+        """list[Pixel_Carriage_Pass_Converter]: List of converters for each pixel row."""
+
         for raster in self.rasters:
             assert raster.pattern_width <= self.expected_pattern_width, f"Raster {raster} has width of {raster.pattern_width} but expected width <= {self.expected_pattern_width}"
+
         self.process: list[Knitout_Instruction | Carriage_Pass] = []
+        """list[Knitout_Instruction | Carriage_Pass]: The converted knitout process instructions."""
+
         self.executed_instructions: list[Knitout_Instruction] = []
+        """list[Knitout_Instruction]: List of individual executed instructions from the process."""
+
         self._read_process()
 
     def _read_process(self) -> None:
-        """
-        Reads the Pixel rows into a knitout process and executed isntruction set.
+        """Read the Pixel rows into a knitout process and executed instruction set.
+
+        Converts each pixel row into its corresponding knitout instructions and carriage passes,
+        maintaining proper execution order and machine state tracking including carrier positions and rack settings.
         """
         self.process: list[Knitout_Instruction | Carriage_Pass] = []
         self.executed_instructions: list[Knitout_Instruction] = []
@@ -46,17 +79,15 @@ class Dat_to_Knitout_Converter:
         all_needle_rack: bool = False
 
         def _add_to_process(e: Knitout_Instruction | Carriage_Pass | None) -> tuple[bool, None | int | tuple[int, bool]]:
-            """
+            """Add an instruction or carriage pass to the process with state tracking.
 
             Args:
-                e: The executed instruction or carriage pass to add to the process.
+                e (Knitout_Instruction | Carriage_Pass | None): The executed instruction or carriage pass to add to the process.
 
             Returns:
-                A tuple:
-                    The first value is a boolean which is True if the executed process would update a local variable involving the knitting machine.
-                    The second value is None if there are no local values to update.
-                    Otherwise, the second value may be a tuple of an int and bool to set the new racking, or an integer to set the current carrier on the yarn-inserting-hook.
-
+                tuple[bool, None | int | tuple[int, bool]]: A tuple that indicates if the addition of the instruction to the process by the following values:
+                 * A boolean which is True if the executed process would update a local variable involving the knitting machine.
+                 * None if there are no local values to update. Otherwise, an int and bool to set the new racking, or an integer to set the current carrier on the yarn-inserting-hook.
             """
             if e is None:
                 return False, None
@@ -97,25 +128,32 @@ class Dat_to_Knitout_Converter:
                         self.executed_instructions.append(instruction)
 
     def _trim_startup_sequence(self, startup_length: int = 3) -> None:
-        """
-        Trim the starting sequence common to knitout files.
+        """Trim the starting sequence common to knitout files.
+
+        Removes the standardized startup sequence rows from the beginning of the pixel data to focus on the main pattern content.
+
         Args:
-            startup_length: The length of the expected startup sequence.
+            startup_length (int, optional): The length of the expected startup sequence. Defaults to 3.
         """
         self.pixels = self.pixels[startup_length:]
 
     def _trim_end_sequence(self, end_length: int = 3) -> None:
-        """
-        Trim the end sequence common to knitout files.
+        """Trim the end sequence common to knitout files.
+
+        Removes the standardized ending sequence rows from the end of the pixel data to focus on the main pattern content.
+
         Args:
-            end_length: The length of the expected end sequence.
+            end_length (int, optional): The length of the expected end sequence. Defaults to 3.
         """
         self.pixels = self.pixels[:-1 * end_length]
 
     def _set_expected_pattern_width(self, pattern_buffer: int = 4) -> None:
-        """
-            Determines the expected pattern width by searching for the top pattern specifier row.
-            Removes all rows above the pattern specifier row from pixels.
+        """Determine the expected pattern width by searching for the top pattern specifier row.
+
+        Searches through the pixel data from the bottom up to find the width specifier row and calculates the expected pattern width. Removes all rows above the pattern specifier row from pixels.
+
+        Args:
+            pattern_buffer (int, optional): Buffer space around the pattern. Defaults to 4.
         """
         i = 0
         for i, row in enumerate(reversed(self.pixels)):
@@ -125,19 +163,21 @@ class Dat_to_Knitout_Converter:
         self.pixels = self.pixels[:(-1 * i) - 1]
 
     def _trim_pixels_to_pattern(self) -> None:
-        """
-            Trims the pixel set of empty buffer rows and edges.
+        """Trim the pixel set of empty buffer rows and edges.
+
+        Removes empty rows and trims the left and right edges of each row to eliminate unnecessary buffer space while preserving meaningful data including option lines.
         """
         # Remove all empty rows from the pixels.
         self.pixels = [row for row in self.pixels if any(p != 0 for p in row)]
 
         def _trim_row(row: list[int]) -> list[int]:
-            """
-            Trims a row of the left and right empty value buffer.
-            Args:
-                row: The row to trim.
+            """Trim a row of the left and right empty value buffer.
 
-            Returns: The Trimmed row.
+            Args:
+                row (list[int]): The row to trim.
+
+            Returns:
+                list[int]: The Trimmed row.
             """
             i = 0
             for i, x in enumerate(row):
@@ -156,12 +196,13 @@ class Dat_to_Knitout_Converter:
         self.pixels = [_trim_row(row) for row in self.pixels]
 
     def _read_dat_file_to_pixels(self) -> None:
-        """
-        Read a DAT file and convert it to a list of lists of integers.
-        Each inner list represents a row of pixels from top to bottom.
+        """Read a DAT file and convert it to a list of lists of integers.
 
-        Returns:
-            List of lists where each inner list contains pixel color indices for one row
+        Reads the binary DAT file format including header validation, palette data, and run-length encoded pixel data. Each inner list represents a row of pixels from top to bottom.
+
+        Raises:
+            ValueError: If the DAT file has invalid magic numbers or format issues.
+            AssertionError: If the number of decoded rows doesn't match the expected height from the header.
         """
         with open(self.dat_filename, 'rb') as f:
             # Read header (0x200 bytes)
@@ -221,10 +262,12 @@ class Dat_to_Knitout_Converter:
             assert len(self.pixels) == height, f"Expected {height} rows, got {len(self.pixels)} rows"
 
     def write_knitout(self, knitout_filename: str) -> None:
-        """
-        Writes the knitout gathered from the dat file to the given knitout filename.
+        """Write the knitout gathered from the dat file to the given knitout filename.
+
+        Generates a complete knitout file including machine headers and all converted instructions from the DAT file processing.
+
         Args:
-            knitout_filename: The name of the knitout file to write.
+            knitout_filename (str): The name of the knitout file to write.
         """
         header_lines = get_machine_header(Knitting_Machine())
         with open(knitout_filename, 'w') as f:

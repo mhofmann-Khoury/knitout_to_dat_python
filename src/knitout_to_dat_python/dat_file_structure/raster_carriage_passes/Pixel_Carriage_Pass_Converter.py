@@ -1,4 +1,8 @@
-"""A Module containing the Pixel Carriage Pass Converter Class."""
+"""A Module containing the Pixel Carriage Pass Converter Class.
+
+This module provides functionality to convert pixel data from DAT files back into carriage pass objects and knitout instructions.
+It serves as the inverse operation of the raster generation process, allowing DAT file data to be interpreted and converted back into knitting machine instructions.
+"""
 from knitout_interpreter.knitout_execution_structures.Carriage_Pass import Carriage_Pass
 from knitout_interpreter.knitout_operations.Pause_Instruction import Pause_Instruction
 from knitout_interpreter.knitout_operations.Rack_Instruction import Rack_Instruction
@@ -12,51 +16,103 @@ from knitout_interpreter.knitout_operations.kick_instruction import Kick_Instruc
 
 from knitout_to_dat_python.dat_file_structure.dat_codes.operation_colors import Operation_Color
 from knitout_to_dat_python.dat_file_structure.dat_codes.option_lines import Left_Option_Lines, Right_Option_Lines
-from knitout_to_dat_python.dat_file_structure.dat_codes.option_value_colors import Hook_Operation_Color, Carriage_Pass_Direction_Color, pixel_to_carriers, Rack_Direction_Color, Amiss_Split_Hook_Color, \
-    Pause_Color
+from knitout_to_dat_python.dat_file_structure.dat_codes.option_value_colors import Hook_Operation_Color, Carriage_Pass_Direction_Color, pixel_to_carriers, Rack_Direction_Color, \
+    Amiss_Split_Hook_Color, Pause_Color
 from knitout_to_dat_python.dat_file_structure.dat_codes.dat_file_color_codes import STOPPING_MARK, OPTION_LINE_COUNT
 from knitout_to_dat_python.kickback_injection.carriage_pass_with_kick import Carriage_Pass_with_Kick
 
 
 class Pixel_Carriage_Pass_Converter:
-    """A class to convert a row of pixels into a Raster Carriage Pass"""
+    """A class to convert a row of pixels into a Raster Carriage Pass.
+
+    This class takes pixel data from a DAT file row and converts it back into the corresponding carriage pass operations and instructions.
+    It parses option lines, needle operations, and machine settings from the pixel representation.
+    """
 
     def __init__(self, pixels: list[int], pattern_buffer: int = 4):
+        """Initialize the Pixel_Carriage_Pass_Converter.
+
+        Args:
+            pixels (list[int]): The list of pixel values representing a row of DAT file data.
+            pattern_buffer (int, optional): Buffer space around the pattern. Defaults to 4.
+        """
         self.pixels: list[int] = pixels
+        """list[int]: The pixel values from the DAT file row."""
+
         self.left_option_line_settings: dict[Left_Option_Lines, int] = {opt: 0 for opt in Left_Option_Lines}
+        """dict[Left_Option_Lines, int]: Dictionary mapping left option lines to their values."""
+
         self._read_left_options()
+
         self.right_option_line_settings: dict[Right_Option_Lines, int] = {opt: 0 for opt in Right_Option_Lines}
+        """dict[Right_Option_Lines, int]: Dictionary mapping right option lines to their values."""
+
         self._read_right_options()
+
         self.slot_colors: dict[int, Operation_Color] = {}
+        """dict[int, Operation_Color]: Dictionary mapping slot numbers to their operation colors."""
+
         self.leftmost_slot = len(pixels)  # dummy maximum placeholder value
+        """int: The leftmost slot with operations (initialized to maximum placeholder)."""
+
         self.rightmost_slot = 0  # dummy minimum placeholder value.
+        """int: The rightmost slot with operations (initialized to minimum placeholder)."""
+
         self._read_needle_slots(pattern_buffer)
+
         self.direction: Carriage_Pass_Direction | None = None
+        """Carriage_Pass_Direction | None: The direction of the carriage pass."""
+
         self._read_direction()
 
     def __repr__(self) -> str:
+        """Return detailed string representation of the converter.
+
+        Returns:
+            str: String representation of the converter.
+        """
         return str(self)
 
     def __str__(self) -> str:
+        """Return string representation of the converter showing options and slots.
+
+        Returns:
+            str: String representation showing option settings and slot operations.
+        """
         options = {o.name: v for o, v in self.left_option_line_settings.items()}
         options.update({o.name: v for o, v in self.right_option_line_settings.items()})
         slots = {s: o.name for s, o in self.slot_colors.items()}
         return f"{options}: {slots}"
 
     def _add_slot(self, slot: int, color: Operation_Color) -> None:
+        """Add a slot operation and update the slot range bounds.
+
+        Args:
+            slot (int): The slot number to add.
+            color (Operation_Color): The operation color for this slot.
+        """
         self.slot_colors[slot] = color
         self.leftmost_slot = min(slot, self.leftmost_slot)
         self.rightmost_slot = max(slot, self.rightmost_slot)
 
     @property
     def pattern_width(self) -> int:
-        """
+        """Get the width of the pattern from leftmost to rightmost operations.
+
         Returns:
-            Width of the pattern from the leftmost to rightmost operations.
+            int: Width of the pattern from the leftmost to rightmost operations.
         """
         return self.rightmost_slot - self.leftmost_slot
 
     def _read_direction(self, check_both_left_and_right: bool = True) -> None:
+        """Read and validate the carriage pass direction from pixels.
+
+        Args:
+            check_both_left_and_right (bool, optional): Whether to validate that left and right direction pixels match. Defaults to True.
+
+        Raises:
+            AssertionError: If check_both_left_and_right is True and left and right direction pixels don't match.
+        """
         left_direction_pixel = self.pixels[(OPTION_LINE_COUNT * 2) - 1]
         if check_both_left_and_right:
             right_direction_pixel = self.pixels[-2 * OPTION_LINE_COUNT]
@@ -65,8 +121,10 @@ class Pixel_Carriage_Pass_Converter:
         self.direction = direction_color.get_direction()
 
     def _read_left_options(self) -> None:
-        """
-            Reads the option values from the left option line portion of the pattern.
+        """Read the option values from the left option line portion of the pattern.
+
+        Raises:
+            ValueError: If an unknown left option is encountered with a non-zero option value.
         """
         options_before_direction = OPTION_LINE_COUNT - 1
         option_area_width = 2 * options_before_direction
@@ -81,8 +139,10 @@ class Pixel_Carriage_Pass_Converter:
                     continue
 
     def _read_right_options(self) -> None:
-        """
-            Reads the option values from the right option line portion of the pattern.
+        """Read the option values from the right option line portion of the pattern.
+
+        Raises:
+            ValueError: If an unknown right option is encountered with a non-zero option value.
         """
         options_before_direction = OPTION_LINE_COUNT - 1
         option_area_width = -2 * options_before_direction
@@ -96,6 +156,14 @@ class Pixel_Carriage_Pass_Converter:
                     continue
 
     def _read_needle_slots(self, buffer: int = 4) -> None:
+        """Read needle slot operations from the pixel pattern.
+
+        Parses the central portion of the pixel array to identify needle operations between stopping marks.
+        Operations are identified by their color codes and mapped to slot positions.
+
+        Args:
+            buffer (int, optional): Buffer space around the pattern. Defaults to 4.
+        """
         # Trim pixels of the option line boundaries, the left and right buffer, and a possible index of the right stop mark at the maximum width (i.e., -1)
         pattern = self.pixels[(2 * OPTION_LINE_COUNT) + buffer: (-2 * OPTION_LINE_COUNT) - buffer - 1]
         found_left_stop = pattern[0] == STOPPING_MARK
@@ -114,9 +182,10 @@ class Pixel_Carriage_Pass_Converter:
 
     @property
     def hook_operation(self) -> Hook_Operation_Color | None:
-        """
+        """Get the hook operation for the carriage pass.
+
         Returns:
-            The Hook operation for the carriage pass or None if the yarn-inserting hook is not in operation.
+            Hook_Operation_Color | None: The Hook operation for the carriage pass or None if the yarn-inserting hook is not in operation.
         """
         op_color = Hook_Operation_Color(self.right_option_line_settings[Right_Option_Lines.Hook_Operation])
         if op_color is Hook_Operation_Color.No_Hook_Operation:
@@ -126,35 +195,42 @@ class Pixel_Carriage_Pass_Converter:
 
     @property
     def stitch_number(self) -> int:
-        """
+        """Get the specified stitch number for the operation.
+
         Returns:
-            The specified stitch number for the operation.
+            int: The specified stitch number for the operation.
         """
         return self.right_option_line_settings[Right_Option_Lines.Stitch_Number]
 
     @property
     def carrier_set(self) -> Yarn_Carrier_Set | None:
-        """
+        """Get the carrier set to be used in this carriage pass.
+
         Returns:
-            The carrier set to be used in this carriage pass or None if no carrier is used.
+            Yarn_Carrier_Set | None: The carrier set to be used in this carriage pass or None if no carrier is used.
         """
         carrier_number = self.right_option_line_settings[Right_Option_Lines.Yarn_Carrier_Number]
         return pixel_to_carriers(carrier_number)
 
     @property
     def is_all_needle_rack(self) -> bool:
-        """
+        """Check if carriage pass is racked for all-needle racking.
+
         Returns:
-            True if carriage pass is racked for all-needle racking. False, otherwise.
+            bool: True if carriage pass is racked for all-needle racking. False, otherwise.
         """
         offset = self.left_option_line_settings[Left_Option_Lines.Rack_Alignment]
         return offset != 0
 
     @property
     def rack(self) -> int:
-        """
+        """Get the racking value for the carriage pass.
+
         Returns:
-            The racking value (excluding all-needle-offset) for the given carriage pass.
+            int: The racking value (excluding all-needle-offset) for the given carriage pass.
+
+        Raises:
+            AssertionError: If rack amount is negative for rightward rack direction.
         """
         rack_amount = self.left_option_line_settings[Left_Option_Lines.Rack_Pitch]
         rack_direction = Rack_Direction_Color(self.left_option_line_settings[Left_Option_Lines.Rack_Direction])
@@ -169,17 +245,22 @@ class Pixel_Carriage_Pass_Converter:
 
     @property
     def knit_speed(self) -> int:
-        """
+        """Get the specified speed for the carriage pass.
+
         Returns:
-            The specified speed for the carriage pass.
+            int: The specified speed for the carriage pass.
         """
         return self.left_option_line_settings[Left_Option_Lines.Knit_Speed]
 
     @property
     def holding_hook_carrier(self) -> None | int:
-        """
+        """Get the yarn-inserting-hook's carrier value.
+
         Returns:
-            The yarn-inserting-hook's carrier value (or None if no carrier is on the gripper).
+            int | None: The yarn-inserting-hook's carrier value (or None if no carrier is on the gripper).
+
+        Raises:
+            AssertionError: If outhook carrier expectations are not met (carrier 10 not first in set, or hook operation is not outhook).
         """
         carrier_number = self.right_option_line_settings[Right_Option_Lines.Carrier_Gripper]
         carrier_set = pixel_to_carriers(carrier_number)
@@ -197,31 +278,44 @@ class Pixel_Carriage_Pass_Converter:
             return cid
 
     def get_instructions_of_slot(self, slot: int, comment: str | None = None) -> list[Needle_Instruction]:
-        """
+        """Get the knitout instructions for a specified slot.
+
+        Converts the operation color at a given slot into the corresponding list of needle instructions,
+        handling various operation types including single needle, all-needle, transfer, split, and drop operations.
+
         Args:
-            slot: The slot to translate to knitout operations.
-            comment: An optional comment for the instruction.
+            slot (int): The slot to translate to knitout operations.
+            comment (str | None, optional): An optional comment for the instruction. Defaults to None.
 
         Returns:
-            The list of Knitout Instructions for the specified operation at the given slot.
+            list[Needle_Instruction]: The list of Knitout Instructions for the specified operation at the given slot.
+
+        Raises:
+            AssertionError:
+                * If all-needle operation color is used without all-needle rack setting.
+                * If all-needle operations are attempted without specified direction.
+                * If split operations are attempted without proper split option line setting.
         """
         if comment is None:
             comment = ''
 
         def _rack_aligned_needle(n: Needle) -> Needle:
-            """
-            Note from Knitout Specification on Racking
-             Number indicating the offset of the front bed relative to the back bed.
-             That is, at racking R, back needle index B is aligned to front needle index B+R.
-             Needles are considered aligned if they can transfer.
-             That is, at racking 2, it is possible to transfer from f3 to b1.
-             F = B + R.
-             R = F - B.
-             B = F - R.
+            """Find the needle aligned to the given needle at current racking.
+
+            Note from Knitout Specification on Racking:
+            Number indicating the offset of the front bed relative to the back bed.
+            That is, at racking R, back needle index B is aligned to front needle index B+R.
+            Needles are considered aligned if they can transfer.
+            That is, at racking 2, it is possible to transfer from f3 to b1.
+            F = B + R.
+            R = F - B.
+            B = F - R.
+
             Args:
-                n: The needle to find the aligned needle at the current racking.
+                n (Needle): The needle to find the aligned needle at the current racking.
+
             Returns:
-                The needle that is opposite the given needle at the current racking alignment.
+                Needle: The needle that is opposite the given needle at the current racking alignment.
             """
             if n.is_front:  # aligned position is on the back bed
                 return Needle(is_front=False, position=n.position - self.rack)
@@ -229,13 +323,14 @@ class Pixel_Carriage_Pass_Converter:
                 return Needle(is_front=True, position=n.position + self.rack)
 
         def _get_single_needle_instruction(instruction_type: type, n: Needle) -> Needle_Instruction:
-            """
+            """Create a needle instruction for a given type and needle.
+
             Args:
-                instruction_type: The type of instruction to instantiate.
-                n: The needle to instantiate the needle at.
+                instruction_type (type): The type of instruction to instantiate.
+                n (Needle): The needle to instantiate the needle at.
 
             Returns:
-                A needle instruction based on the carriage pass values, instruction type, and given needle.
+                Needle_Instruction: A needle instruction based on the carriage pass values, instruction type, and given needle.
             """
             return instruction_type(n, self.direction, self.carrier_set, comment)
 
@@ -279,14 +374,18 @@ class Pixel_Carriage_Pass_Converter:
 
     @property
     def has_prior_pause(self) -> bool:
-        """
-        Returns: True if the carriage pass is set to pause. False otherwise.
+        """Check if the carriage pass is set to pause.
+
+        Returns:
+            bool: True if the carriage pass is set to pause. False otherwise.
         """
         return self.left_option_line_settings[Left_Option_Lines.Pause_Option] == Pause_Color.Pause.value
 
     def get_prior_pause(self) -> None | Pause_Instruction:
-        """
-        Returns: A Pause_Instruction if the carriage pass is set to pause. None otherwise.
+        """Get a pause instruction if the carriage pass is set to pause.
+
+        Returns:
+            Pause_Instruction | None: A Pause_Instruction if the carriage pass is set to pause. None otherwise.
         """
         if self.has_prior_pause:
             return Pause_Instruction()
@@ -294,9 +393,15 @@ class Pixel_Carriage_Pass_Converter:
             return None
 
     def get_carriage_pass(self) -> Carriage_Pass:
-        """
+        """Get the carriage pass that results from this row of pixels.
+
+        Converts the parsed pixel data into a complete Carriage_Pass object with all instructions in the correct execution order based on direction.
+
         Returns:
-            The carriage pass that results from this row of pixels.
+            Carriage_Pass: The carriage pass that results from this row of pixels.
+
+        Raises:
+            AssertionError: If an instruction cannot be added to the carriage pass.
         """
         direction = self.direction
         if direction is None or direction is Carriage_Pass_Direction.Rightward:
@@ -320,12 +425,16 @@ class Pixel_Carriage_Pass_Converter:
         return carriage_pass
 
     def get_hook_instruction(self, release_carrier: int | None = None) -> None | Hook_Instruction:
-        """
+        """Get the hook instruction associated with this carriage pass.
+
         Args:
-            release_carrier: The current carrier on the yarn-inserting hook to release. Defaults to None
+            release_carrier (int | None, optional): The current carrier on the yarn-inserting hook to release. Defaults to None.
 
         Returns:
-            None if this carriage pass does not have a hook instruction, Otherwise the hook instruction associated with the pass.
+            Hook_Instruction | None: None if this carriage pass does not have a hook instruction. Otherwise, the hook instruction associated with the pass.
+
+        Raises:
+            AssertionError: If release_carrier is None when ReleaseHook_Operation is specified.
         """
         if self.hook_operation is None:
             return None
@@ -338,32 +447,26 @@ class Pixel_Carriage_Pass_Converter:
             return Outhook_Instruction(self.holding_hook_carrier)
 
     def get_rack_instruction(self) -> Rack_Instruction:
-        """
+        """Get the rack instruction that should precede this carriage pass.
+
         Returns:
-            The rack instruction that should proceed this carriage pass.
+            Rack_Instruction: The rack instruction that should proceed this carriage pass.
         """
-        def _rack_instruction_from_int_spec(comment: str | None = None) -> Rack_Instruction:
-            """
-            Args:
-                comment: Optional comment to add to the rack instruction.
-
-            Returns: The rack instruction based on the given racking specification.
-            Todo: Fix this logic in the knitout interpreter.
-
-            """
-            rack_value: float = float(self.rack)
-            if self.is_all_needle_rack:
-                rack_value += 0.25
-            return Rack_Instruction(rack_value, comment)
-        return _rack_instruction_from_int_spec()
+        rack_value: float = float(self.rack)
+        if self.is_all_needle_rack:
+            rack_value += 0.25
+        return Rack_Instruction(rack_value)
 
     def get_execution_process(self, release_carrier: int | None = None) -> list[Knitout_Instruction | Carriage_Pass | None]:
-        """
+        """Get the complete execution process for this carriage pass.
+
+        Returns a list of instructions and carriage passes in the correct execution order, including rack instructions, pause instructions, hook instructions, and the main carriage pass operation.
+
         Args:
-            release_carrier: The current carrier on the yarn-inserting hook to release. Defaults to None.
+            release_carrier (int | None, optional): The current carrier on the yarn-inserting hook to release. Defaults to None.
 
         Returns:
-            A list of knitout instructions and the carriage pass used to execute this portion of the knitting process.
+            list[Knitout_Instruction | Carriage_Pass | None]: A list of knitout instructions and the carriage pass used to execute this portion of the knitting process.
         """
         if self.hook_operation is Hook_Operation_Color.In_Hook_Operation or self.hook_operation is Hook_Operation_Color.ReleaseHook_Operation:
             return [self.get_rack_instruction(), self.get_prior_pause(), self.get_hook_instruction(release_carrier),  self.get_carriage_pass()]

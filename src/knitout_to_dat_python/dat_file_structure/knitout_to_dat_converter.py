@@ -1,11 +1,12 @@
-"""
-Dat_File class for creating Shima Seiki DAT files from knitout files.
-Based on the CMU Textile Lab's knitout-to-dat.js functionality.
+"""Dat_File class for creating Shima Seiki DAT files from knitout files.
+
+This module provides comprehensive functionality for converting knitout files to Shima Seiki DAT format.
+It handles the complete conversion pipeline including knitout parsing, raster generation, run-length encoding, and DAT file creation.
+The implementation is based on the CMU Textile Lab's knitout-to-dat.js functionality.
 """
 
 import os
 import struct
-import warnings
 
 from knitout_interpreter.knitout_execution_structures.Carriage_Pass import Carriage_Pass
 from knitout_interpreter.knitout_language.Knitout_Parser import parse_knitout
@@ -13,37 +14,31 @@ from knitout_interpreter.knitout_operations.Header_Line import Knitting_Machine_
 from knitout_interpreter.knitout_operations.Knitout_Line import Knitout_Line
 from knitout_interpreter.knitout_operations.Pause_Instruction import Pause_Instruction
 from knitout_interpreter.knitout_operations.carrier_instructions import Inhook_Instruction, Releasehook_Instruction, Outhook_Instruction
+from knitout_interpreter.knitout_operations.kick_instruction import Kick_Instruction
 from knitout_interpreter.knitout_operations.knitout_instruction import Knitout_Instruction
 from virtual_knitting_machine.Knitting_Machine import Knitting_Machine
 from virtual_knitting_machine.Knitting_Machine_Specification import Knitting_Position, Knitting_Machine_Specification
 from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import Carriage_Pass_Direction
 from virtual_knitting_machine.machine_components.yarn_management.Yarn_Carrier_Set import Yarn_Carrier_Set
-from knitout_interpreter.knitout_operations.kick_instruction import Kick_Instruction
 
+from knitout_to_dat_python.dat_file_structure.dat_bookend_sequences import startup_knit_sequence, finish_knit_sequence
 from knitout_to_dat_python.dat_file_structure.dat_codes.dat_file_color_codes import WIDTH_SPECIFIER
 from knitout_to_dat_python.dat_file_structure.dat_codes.option_value_colors import Hook_Operation_Color, Knit_Cancel_Color, Carriage_Pass_Direction_Color
-from knitout_to_dat_python.dat_file_structure.dat_sequences.end_sequence import finish_knit_sequence
-from knitout_to_dat_python.dat_file_structure.dat_sequences.startup_sequence import startup_knit_sequence
-from knitout_to_dat_python.dat_file_structure.raster_processes.raster_passes.Outhook_Raster import Outhook_Raster_Pass
-from knitout_to_dat_python.dat_file_structure.raster_processes.raster_passes.Raster_Carriage_Pass import Raster_Carriage_Pass
-from knitout_to_dat_python.dat_file_structure.raster_processes.raster_passes.Raster_Soft_Miss_Pass import Soft_Miss_Raster_Pass
-from knitout_to_dat_python.dat_file_structure.raster_processes.raster_passes.Releasehook_Raster import Releasehook_Raster_Pass
+from knitout_to_dat_python.dat_file_structure.raster_carriage_passes.Outhook_Raster import Outhook_Raster_Pass
+from knitout_to_dat_python.dat_file_structure.raster_carriage_passes.Raster_Carriage_Pass import Raster_Carriage_Pass
+from knitout_to_dat_python.dat_file_structure.raster_carriage_passes.Raster_Soft_Miss_Pass import Soft_Miss_Raster_Pass
+from knitout_to_dat_python.dat_file_structure.raster_carriage_passes.Releasehook_Raster import Releasehook_Raster_Pass
 from knitout_to_dat_python.kickback_injection.kickback_execution import Knitout_Executer_With_Kickbacks
 
 
 class Knitout_to_Dat_Converter:
-    """
-    A class for creating Shima Seiki DAT files from knitout files.
+    """A class for creating Shima Seiki DAT files from knitout files.
 
     DAT files are encoded raster images containing knitting patterns and machine instructions.
     The format consists of a header, color palette, and run-length encoded pixel data.
+    This class handles the complete conversion pipeline from knitout parsing through DAT file generation.
     """
-    POSITION_DESCRIPTIONS: dict[Knitting_Position, str] = {
-        Knitting_Position.Center: "center design on needle bed",
-        Knitting_Position.Keep: "use needle numbers as written",
-        Knitting_Position.Left: "left-justify design on needle bed",
-        Knitting_Position.Right: "right-justify design on needle bed"
-    }
+
     # Class constants - palette data that's the same for all DAT files
     PALETTE_STR: str = ("ff 00 ff 00 ff 00 ff 00 6c 4a ff b4 99 90 80 cf 52 51 eb 00 fc b2 fc fc fc fc "
                         "64 d8 eb a0 90 73 9d 73 d8 eb ff b4 ac d7 d8 7f d8 90 ca d8 ae bc 80 9f ff dc "
@@ -75,58 +70,84 @@ class Knitout_to_Dat_Converter:
                         "4b 67 ce ff a9 7d ff 64 d3 6f f7 b4 f7 ad cf fc e9 cd 7f 81 af 64 f7 51 f5 a4 "
                         "7d df 3f cf f7 fd f9 7f df f0 4d 5f fb ff fb 4f df a9 f0 8a 45 ba 96 fc bd 09 "
                         "b7 00 f2 00 00 00 00 00 64")
+    """str: Hexadecimal string representation of the standard DAT file color palette."""
 
     # Convert palette string to bytes (computed once as class constant)
     PALETTE_BYTES = bytes.fromhex(PALETTE_STR.replace(' ', ''))
+    """bytes: Binary representation of the DAT file color palette."""
 
     # DAT file structure constants
     HEADER_SIZE = 0x200
+    """int: Size of the DAT file header in bytes."""
+
     PALETTE_SIZE = 0x400  # 768 bytes palette + padding to 1024 bytes
+    """int: Size of the palette section in bytes (768 bytes palette + padding to 1024 bytes)."""
+
     DATA_OFFSET = 0x600
+    """int: Offset where the run-length encoded data begins in the DAT file."""
 
     def __init__(self, knitout: str, dat_filename: str, knitout_in_file: bool = True):
-        """
-        Initialize a Dat_File instance.
+        """Initialize a Dat_File instance.
 
         Args:
-            knitout: Path to the input knitout file
-            dat_filename: Name for the output DAT file
+            knitout (str): Path to the input knitout file or knitout content string.
+            dat_filename (str): Name for the output DAT file.
+            knitout_in_file (bool, optional): Whether knitout parameter is a file path (True) or content string (False). Defaults to True.
+
+        Raises:
+            ValueError: If palette data is not the expected 768 bytes.
+            FileNotFoundError: If knitout file is specified but not found.
+            RuntimeError: If knitting range is outside the specified needle bed range when using Keep position.
         """
         # Validate palette
         if len(self.PALETTE_BYTES) != 768:
             raise ValueError(f"Palette should be 768 bytes, got {len(self.PALETTE_BYTES)}")
 
         self.knitout: str = knitout
+        """str: The knitout file path or content string."""
+
         self.knitout_is_file: bool = knitout_in_file
+        """bool: Whether knitout parameter represents a file path."""
+
         if self.knitout_is_file and not os.path.exists(self.knitout):
             raise FileNotFoundError(f"Knitout file not found: {self.knitout}")
 
         self.dat_filename: str = dat_filename
+        """str: Output DAT filename."""
 
         # Knitout parsing results
         self.knitout_lines: list[Knitout_Line] = parse_knitout(self.knitout, pattern_is_file=self.knitout_is_file)
+        """list[Knitout_Line]: Parsed knitout lines from the input."""
+
         self.knitout_executer: Knitout_Executer_With_Kickbacks = Knitout_Executer_With_Kickbacks(self.knitout_lines, Knitting_Machine())
+        """Knitout_Executer_With_Kickbacks: Executor for processing knitout instructions with kickback support."""
+
         self._leftmost_slot: int = 0
+        """int: The leftmost needle slot used in the pattern."""
+
         self._rightmost_slot: int = 0
+        """int: The rightmost needle slot used in the pattern."""
+
         self._set_slot_range()
 
-        if self.specified_carrier_count != 10:
-            warnings.warn(f"Knitout: Expected 10 carriers but {self.specified_carrier_count} carriers were specified.")
-        print(f"Will {self.POSITION_DESCRIPTIONS[self.specified_position]} as per position specification.")
         print(f"Needle bed specified as {self.specified_needle_bed_width} needles at gauge {self.specified_gauge} needles per inch.")
 
         # Pattern positioning info (derived from headers)
         self.position_offset: int = 0
+        """int: Offset for positioning the pattern on the needle bed."""
+
         self._calculate_positioning()
 
         # Initialize properties that will be set during processing
         self.raster_data: list[list[int]] = []
+        """list[list[int]]: 2D array of pixel values representing the complete DAT raster."""
 
     @property
     def dat_width(self) -> int:
-        """
+        """Get the width in pixels of the dat file.
+
         Returns:
-            The width in pixels of the dat file.
+            int: The width in pixels of the dat file. Returns 0 if no raster data exists.
         """
         if len(self.raster_data) == 0:
             return 0
@@ -135,17 +156,23 @@ class Knitout_to_Dat_Converter:
 
     @property
     def dat_height(self) -> int:
-        """
+        """Get the height in pixels of the dat file.
+
         Returns:
-            The height in pixels of the dat file.
+            int: The height in pixels of the dat file.
         """
         return len(self.raster_data)
 
     def _set_slot_range(self) -> None:
+        """Set the leftmost and rightmost slot ranges used in the knitout process.
+
+        Analyzes all carriage passes to determine the minimum and maximum needle positions used, accounting for racking offsets to determine the effective slot range.
+        """
         def _carriage_pass_range(carriage_pass: Carriage_Pass) -> tuple[int, int]:
-            """
-            :return: Left most and Right most needle positions in the carriage pass.
-            TODO: Fix Carriage Pass class to include the racking value in self.carriage_pass_range().
+            """Get the leftmost and rightmost needle positions in the carriage pass.
+
+            Returns:
+                tuple[int, int]: Left most and Right most needle positions in the carriage pass.
             """
             sorted_needles = carriage_pass.rightward_sorted_needles()
             return int(sorted_needles[0].racked_position_on_front(cp.rack)), int(sorted_needles[-1].racked_position_on_front(cp.rack))
@@ -163,64 +190,66 @@ class Knitout_to_Dat_Converter:
 
     @property
     def leftmost_slot(self) -> int:
-        """
+        """Get the minimum needle position of operations in the knitout code.
+
         Returns:
-            The minimum needle position of operations in the knitout code.
-            If the knitout never uses a needle position, this will be set to 0.
+            int: The minimum needle position of operations in the knitout code. If the knitout never uses a needle position, this will be set to 0.
         """
         return self._leftmost_slot
         # return self.knitout_executer.left_most_position if self.knitout_executer.left_most_position is not None else 0
 
     @property
     def rightmost_slot(self) -> int:
-        """
+        """Get the maximum needle position of operations in the knitout code.
+
         Returns:
-            The maximum needle position of operations in the knitout code.
-            If the knitout never uses a needle position, this will be set to 0.
+            int: The maximum needle position of operations in the knitout code. If the knitout never uses a needle position, this will be set to 0.
         """
         return self._rightmost_slot
         # return self.knitout_executer.right_most_position if self.knitout_executer.right_most_position is not None else 0
 
     @property
     def slot_range(self) -> tuple[int, int]:
-        """
-        Returns: The leftmost and rightmost needle slots of the knitout process.
+        """Get the leftmost and rightmost needle slots of the knitout process.
 
+        Returns:
+            tuple[int, int]: The leftmost and rightmost needle slots of the knitout process.
         """
         return self._leftmost_slot, self._rightmost_slot
 
     @property
     def knitout_header(self) -> Knitting_Machine_Header:
-        """
+        """Get the Knitting Machine Header parsed from the given knitout.
+
         Returns:
-            The Knitting Machine Header parsed from the given knitout.
-            Default header values are set if a header value is not explicitly defined.
+            Knitting_Machine_Header: The Knitting Machine Header parsed from the given knitout. Default header values are set if a header value is not explicitly defined.
         """
         return self.knitout_executer.executed_header
 
     @property
     def machine_specification(self) -> Knitting_Machine_Specification:
-        """
+        """Get the Knitting Machine Specification parsed from the given knitout header.
+
         Returns:
-            The Knitting Machine Specification parsed from the given knitout header.
+            Knitting_Machine_Specification: The Knitting Machine Specification parsed from the given knitout header.
         """
         return self.knitout_header.machine.machine_specification
 
     @property
     def specified_carrier_count(self) -> int:
-        """
+        """Get the number of carriers specified for the machine.
+
         Returns:
-            The number of carriers specified for the machine given the knitout file header or default values.
-            Defaults to 10 carriers.
+            int: The number of carriers specified for the machine given the knitout file header or default values. Defaults to 10 carriers.
         """
         return int(self.machine_specification.carrier_count)
 
     @property
     def specified_position(self) -> Knitting_Position:
-        """
+        """Get the position on the bed to knit on.
+
         Returns:
-            The position on the bed to knit on given the knitout file header or default values.
-            Defaults to Right side of bed.
+            Knitting_Position: The position on the bed to knit on given the knitout file header or default values. Defaults to Right side of bed.
         """
         position = self.machine_specification.position
         if isinstance(position, str):
@@ -229,10 +258,10 @@ class Knitout_to_Dat_Converter:
 
     @property
     def specified_needle_bed_width(self) -> int:
-        """
+        """Get the count of needles on each bed.
+
         Returns:
-            The count of needles on each bed given the knitout file header or default values.
-            Defaults to 540 needles.
+            int: The count of needles on each bed given the knitout file header or default values. Defaults to 540 needles.
         """
         needle_count = self.machine_specification.needle_count
         assert isinstance(needle_count, int)
@@ -240,20 +269,22 @@ class Knitout_to_Dat_Converter:
 
     @property
     def specified_gauge(self) -> int:
-        """
+        """Get the gauge of the knitting machine.
+
         Returns:
-            The gauge of the knitting machine (needles per inch) given the knitout file header or default values.
-            Defaults to 15 needles per inch.
+            int: The gauge of the knitting machine (needles per inch) given the knitout file header or default values. Defaults to 15 needles per inch.
         """
         gauge = self.machine_specification.gauge
         assert isinstance(gauge, int)
         return gauge
 
     def _calculate_positioning(self) -> None:
-        """
-        Calculate pattern positioning based on headers and needle usage.
-        This determines where the pattern will be placed on the machine bed.
-        Sets the position_offset property based on the knitting with and specified positon.
+        """Calculate pattern positioning based on headers and needle usage.
+
+        This determines where the pattern will be placed on the machine bed and sets the position_offset property based on the knitting width and specified position.
+
+        Raises:
+            RuntimeError: If knitting range is outside the specified needle bed range when using Keep position.
         """
         if self.specified_position is Knitting_Position.Center:
             self.position_offset = round((self.specified_needle_bed_width - (self.rightmost_slot - self.leftmost_slot + 1)) / 2)
@@ -269,11 +300,10 @@ class Knitout_to_Dat_Converter:
             self.position_offset = 1
 
     def get_dat_header_info(self) -> dict[str, int]:
-        """
-        Get current header information.
+        """Get current header information.
 
         Returns:
-            Dictionary with header information
+            dict[str, int]: Dictionary with header information including min_slot, max_slot, position_offset, and pattern_width.
         """
         return {
             'min_slot': self.leftmost_slot,
@@ -284,16 +314,22 @@ class Knitout_to_Dat_Converter:
 
     @property
     def knitting_width(self) -> int:
-        """
+        """Get the width of the range of needles used by the knitting operations.
+
         Returns:
-            The width of the range of needles used in by the knitting operations.
+            int: The width of the range of needles used in by the knitting operations. Returns 0 if rightmost_slot is not greater than leftmost_slot.
         """
         return self.rightmost_slot - self.leftmost_slot + 1 if self.rightmost_slot > self.leftmost_slot else 0
 
     def create_raster_from_knitout(self, pattern_vertical_buffer: int = 5, pattern_horizontal_buffer: int = 4, option_horizontal_buffer: int = 10) -> None:
-        """
-        Create an empty raster filled with background color (0).
+        """Create raster data from the parsed knitout instructions.
 
+        Generates the complete raster representation of the knitout pattern including startup sequences, main pattern operations, ending sequences, and appropriate spacing and buffers.
+
+        Args:
+            pattern_vertical_buffer (int, optional): Vertical spacing buffer around the pattern. Defaults to 5.
+            pattern_horizontal_buffer (int, optional): Horizontal spacing buffer around the pattern. Defaults to 4.
+            option_horizontal_buffer (int, optional): Horizontal spacing buffer around option lines. Defaults to 10.
         """
         # Create empty lower padding and startup sequence raster
         startup_sequence = self._get_startup_rasters()
@@ -331,19 +367,40 @@ class Knitout_to_Dat_Converter:
         self._extend_raster_data(base_spacer)
 
     def _append_to_raster_data(self, row: list[int]) -> None:
+        """Append a single row to the raster data.
+
+        Args:
+            row (list[int]): The row to append to the raster data.
+
+        Raises:
+            AssertionError: If the row length doesn't match the expected DAT width.
+        """
         assert len(row) == self.dat_width
         self.raster_data.append(row)
 
     def _extend_raster_data(self, rows: list[list[int]]) -> None:
+        """Extend the raster data with multiple rows.
+
+        Args:
+            rows (list[list[int]]): The rows to extend the raster data with.
+
+        Raises:
+            AssertionError: If any row length doesn't match the expected DAT width.
+        """
         for row in rows:
             self._append_to_raster_data(row)
 
     def run_length_encode(self) -> list[int]:
-        """
-        Run-length encode the raster data into index-length pairs.
+        """Run-length encode the raster data into index-length pairs.
+
+        Compresses the raster data using run-length encoding where consecutive pixels of the same color are represented as color-index and run-length pairs.
+        This is the standard compression method used in DAT files.
 
         Returns:
-            List of alternating color indices and run lengths
+            list[int]: List of alternating color indices and run lengths.
+
+        Raises:
+            ValueError: If no raster data exists to encode.
         """
         if not self.raster_data:
             raise ValueError("No raster data to encode. Call create_empty_raster() first.")
@@ -372,11 +429,12 @@ class Knitout_to_Dat_Converter:
         return index_length_pairs
 
     def create_dat_header(self) -> bytearray:
-        """
-        Create the DAT file header.
+        """Create the DAT file header.
+
+        Generates the binary header section of the DAT file including dimensions, magic numbers, and other metadata required by the Shima Seiki DAT format specification.
 
         Returns:
-            Header as a bytearray
+            bytearray: Header as a bytearray of HEADER_SIZE bytes.
         """
         header = bytearray(self.HEADER_SIZE)
 
@@ -392,26 +450,35 @@ class Knitout_to_Dat_Converter:
 
     @staticmethod
     def create_palette_section() -> bytearray:
-        """
-        Create the palette section of the DAT file.
+        """Create the palette section of the DAT file.
+
+        Generates the color palette section using the standard DAT file palette data, padded to the required PALETTE_SIZE.
 
         Returns:
-            Palette section as a bytearray (padded to PALETTE_SIZE)
+            bytearray: Palette section as a bytearray (padded to PALETTE_SIZE).
         """
         palette_section = bytearray(Knitout_to_Dat_Converter.PALETTE_SIZE)
         palette_section[:len(Knitout_to_Dat_Converter.PALETTE_BYTES)] = Knitout_to_Dat_Converter.PALETTE_BYTES
         return palette_section
 
     def _get_startup_rasters(self) -> list[Raster_Carriage_Pass]:
-        """
+        """Get the list of raster carriage passes for the startup knitting sequences.
+
         Returns:
-            The list of raster carriage passes for the startup knitting sequences of the pattern width.
+            list[Raster_Carriage_Pass]: The list of raster carriage passes for the startup knitting sequences of the pattern width.
         """
         startup_sequence = startup_knit_sequence(self.knitting_width)
         return [Raster_Carriage_Pass(cp, self.machine_specification, min_knitting_slot=self.leftmost_slot, max_knitting_slot=self.rightmost_slot, stitch_number=0)
                 for cp in startup_sequence]
 
     def _get_end_rasters(self) -> list[Raster_Carriage_Pass]:
+        """Get the list of raster carriage passes for the ending knitting sequences.
+
+        Creates the ending sequence rasters with the final pass configured for drop sinker operation to properly complete the knitting process.
+
+        Returns:
+            list[Raster_Carriage_Pass]: The list of raster carriage passes for the ending knitting sequences.
+        """
         ending_sequence = finish_knit_sequence(self.knitting_width)
         rasters = [Raster_Carriage_Pass(cp, self.machine_specification, min_knitting_slot=self.leftmost_slot, max_knitting_slot=self.rightmost_slot, stitch_number=0) for cp in ending_sequence[:-1]]
         sinker_raster = Raster_Carriage_Pass(ending_sequence[-1], self.machine_specification, min_knitting_slot=self.leftmost_slot, max_knitting_slot=self.rightmost_slot, stitch_number=0,
@@ -420,6 +487,20 @@ class Knitout_to_Dat_Converter:
         return rasters
 
     def _get_knitting_width_raster(self, pattern_buffer: int = 4, option_buffer: int = 10) -> list[int]:
+        """Get the knitting width specification raster row.
+
+        Creates a raster row that specifies the knitting width using WIDTH_SPECIFIER values with appropriate buffering and spacing.
+
+        Args:
+            pattern_buffer (int, optional): Buffer space around the pattern. Defaults to 4.
+            option_buffer (int, optional): Buffer space around option lines. Defaults to 10.
+
+        Returns:
+            list[int]: The raster row specifying the knitting width.
+
+        Raises:
+            AssertionError: If the generated raster width doesn't match the expected DAT width.
+        """
         option_buffer = Raster_Carriage_Pass.get_option_margin_width(option_buffer)
         raster = [0] * option_buffer  # Left black space of the row
         width_specifier = self.knitting_width + (2 * pattern_buffer) + 2  # Knitting width + left and right buffer + 2 stop markers
@@ -429,9 +510,16 @@ class Knitout_to_Dat_Converter:
         return raster
 
     def _get_pattern_rasters(self) -> list[Raster_Carriage_Pass]:
-        """
+        """Get list of raster carriage passes for each carriage pass in the program.
+
+        Processes each instruction and carriage pass in the knitout execution, handling carrier management, hook operations, pause instructions, and carriage movement optimization.
+        Updates carriage move settings based on repeated direction changes.
+
         Returns:
-            List of raster carriage passes for each carriage pass in the program
+            list[Raster_Carriage_Pass]: List of raster carriage passes for each carriage pass in the program.
+
+        Raises:
+            AssertionError: If inhook operation is attempted on a rightward knitting pass or if a carriage pass cannot be executed on the machine state.
         """
         raster_passes: list[Raster_Carriage_Pass] = []
         inhook_carriers: set[int] = set()
@@ -489,6 +577,20 @@ class Knitout_to_Dat_Converter:
         return raster_passes
 
     def _raster_outhook(self, current_machine_state: Knitting_Machine, outhook_instruction: Outhook_Instruction) -> list[Soft_Miss_Raster_Pass]:
+        """Create raster passes for outhook operations.
+
+        Generates the necessary raster passes to perform an outhook operation, including an optional preliminary kick pass if the carriage is in the wrong direction.
+
+        Args:
+            current_machine_state (Knitting_Machine): The current state of the knitting machine.
+            outhook_instruction (Outhook_Instruction): The outhook instruction to convert to raster passes.
+
+        Returns:
+            list[Soft_Miss_Raster_Pass]: List of raster passes needed to execute the outhook operation.
+
+        Raises:
+            AssertionError: If the carrier to be outhooked has no position.
+        """
         outhook_passes = []
         carrier_position = current_machine_state.carrier_system[outhook_instruction.carrier_id].position
         assert isinstance(carrier_position, int), f"Cannot outhook a carrier that has no position: {outhook_instruction.carrier_id}"
@@ -502,15 +604,21 @@ class Knitout_to_Dat_Converter:
         return outhook_passes
 
     def _raster_releasehook(self, current_machine_state: Knitting_Machine, release_instruction: Releasehook_Instruction) -> list[Soft_Miss_Raster_Pass]:
-        """
+        """Create raster passes for releasehook operations.
+
+        Generates the necessary raster passes to perform a releasehook operation.
+        Releasehook will be executed in the same direction as the original inhook was executed at the current position of the carrier.
+        If the carriage's last move was in the release direction, a Soft-Miss pass is added with knit-cancel for carriage movement.
+
         Args:
-            current_machine_state: The current state of the knitting process being rastered. Used to get carrier and carriage position data.
-            release_instruction: The release hook instruction to raster.
+            current_machine_state (Knitting_Machine): The current state of the knitting process that is being rendered. Used to get carrier and carriage position data.
+            release_instruction (Releasehook_Instruction): The release hook instruction to raster.
 
         Returns:
-            The list of 1 or 2 Raster passes used to raster the releasehook operation.
-            Releasehook will be executed in the same direction as the original inhook was executed at the current position of the carrier.
-            If the carriage's last move was in the release direction, a Soft-Miss pass is added with knit-cancel for carriage movement.
+            list[Soft_Miss_Raster_Pass]: The list of 1 or 2 Raster passes used to raster the releasehook operation.
+
+        Raises:
+            AssertionError: If the carrier to be released has no position.
         """
         release_passes = []
         release_carrier_position = current_machine_state.carrier_system[release_instruction.carrier_id].position
@@ -519,14 +627,18 @@ class Knitout_to_Dat_Converter:
             kick_to_release = Kick_Instruction(release_carrier_position, ~current_machine_state.carrier_system.hook_input_direction, comment="Kick to set release direction.")
             soft_miss_pass = Soft_Miss_Raster_Pass(kick_to_release, self.machine_specification, min_knitting_slot=self.leftmost_slot, max_knitting_slot=self.rightmost_slot)
             release_passes.append(soft_miss_pass)
-        releasehook_pass = Releasehook_Raster_Pass(release_carrier_position, current_machine_state.carrier_system.hook_input_direction, self.machine_specification,
+        releasehook_pass = Releasehook_Raster_Pass(release_carrier_position, self.machine_specification,
                                                    min_knitting_slot=self.leftmost_slot, max_knitting_slot=self.rightmost_slot)
         release_passes.append(releasehook_pass)
         return release_passes
 
     def write_dat_file(self) -> None:
-        """
-        Write the complete DAT file to disk.
+        """Write the complete DAT file to disk.
+
+        Creates the complete binary DAT file including header, palette, and run-length encoded raster data. Outputs file information including size and dimensions upon successful completion.
+
+        Raises:
+            ValueError: If no raster data exists to write.
         """
         if not self.raster_data:
             raise ValueError("No raster data to write. Create raster data first.")
@@ -563,30 +675,31 @@ class Knitout_to_Dat_Converter:
         print(f"  Encoded data: {len(encoded_data)} bytes")
 
     def create_empty_raster(self, width: int, height: int) -> None:
-        """
-        Create an empty raster filled with background color (0).
+        """Create an empty raster filled with background color (0).
 
         Args:
-            width: Width of the raster in pixels
-            height: Height of the raster in pixels
+            width (int): Width of the raster in pixels.
+            height (int): Height of the raster in pixels.
         """
         self.raster_data = [[0 for _ in range(width)] for _ in range(height)]
         print(f"Created empty raster: {width} x {height}")
 
     def create_empty_dat(self, width: int = 50, height: int = 10) -> None:
-        """
-        Create a simple empty DAT file for testing purposes.
+        """Create a simple empty DAT file for testing purposes.
+
+        Creates a minimal DAT file with the specified dimensions filled with background color for testing and validation purposes.
 
         Args:
-            width: Width of the raster (default: 50)
-            height: Height of the raster (default: 10)
+            width (int, optional): Width of the raster. Defaults to 50.
+            height (int, optional): Height of the raster. Defaults to 10.
         """
         self.create_empty_raster(width, height)
         self.write_dat_file()
 
     def process_knitout_to_dat(self) -> None:
-        """
-        Complete workflow: parse knitout file and create DAT file.
+        """Complete workflow: parse knitout file and create DAT file.
+
+        Executes the complete conversion pipeline from knitout parsing through DAT file generation, including raster creation and file writing with progress reporting.
         """
         print("Starting knitout to DAT conversion...")
 
@@ -597,37 +710,3 @@ class Knitout_to_Dat_Converter:
         self.write_dat_file()
 
         print("✓ Knitout to DAT conversion completed successfully!")
-
-
-def main() -> None:
-    """Example usage of the Dat_File class."""
-
-    # Example 1: Create a simple empty DAT file
-    print("=== Creating Empty DAT File ===")
-    dat_file = Knitout_to_Dat_Converter("example.knitout", "test_output.dat")
-    dat_file.create_empty_dat(width=60, height=15)
-
-    # Example 2: Process a real knitout file (if it exists)
-    print("\n=== Processing Knitout File ===")
-    knitout_file = "sample.knitout"  # Replace with actual file path
-
-    if os.path.exists(knitout_file):
-        dat_file2 = Knitout_to_Dat_Converter(knitout_file, "from_knitout.dat")
-        try:
-            dat_file2.process_knitout_to_dat()
-
-            # Display header information
-            dat_header_info = dat_file2.get_dat_header_info()
-            print("\nHeader Information:")
-            for key, value in dat_header_info.items():
-                print(f"  {key}: {value}")
-
-        except Exception as e:
-            print(f"Error processing knitout file: {e}")
-    else:
-        print(f"Sample knitout file '{knitout_file}' not found. Skipping knitout processing example.")
-        print("To test knitout processing, create a valid knitout file and update the file path.")
-
-
-if __name__ == "__main__":
-    main()
