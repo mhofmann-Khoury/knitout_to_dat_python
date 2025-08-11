@@ -18,9 +18,9 @@ authors = ["Megan Hofmann <m.hofmann@northeastern.edu>"]       # Primary authors
 maintainers = ["Megan Hofmann <m.hofmann@northeastern.edu>"]   # Current maintainers
 license = "MIT"                 # License type (shows up on PyPI)
 readme = "README.md"            # File to use as long description on PyPI
-homepage = "https://github.com/mhofmann-Khoury/knitout_to_dat_python"     # Project website
+homepage = "https://mhofmann-khoury.github.io/knitout_to_dat_python/"     # Project website
 repository = "https://github.com/mhofmann-Khoury/knitout_to_dat_python"   # Source code location
-documentation = "https://knitout-to-dat-python.readthedocs.io"            # Documentation site
+documentation = "https://mhofmann-khoury.github.io/knitout_to_dat_python/"            # Documentation site
 keywords = [                    # Keywords for PyPI search
     "knitout",
     "machine knitting",
@@ -141,10 +141,6 @@ myst-parser = "^2.0.0"              # Support for Markdown files in documentatio
 # ADDITIONAL PROJECT URLS
 # =============================================================================
 # Extra links that appear on your PyPI project page
-[tool.poetry.urls]
-"Bug Tracker" = "https://github.com/mhofmann-Khoury/knitout_to_dat_python/issues"        # Where to report bugs
-"Changelog" = "https://github.com/mhofmann-Khoury/knitout_to_dat_python/blob/main/CHANGELOG.md"  # Version history
-"Discussions" = "https://github.com/mhofmann-Khoury/knitout_to_dat_python/discussions"   # Community discussions
 
 # =============================================================================
 # MYPY STATIC TYPE CHECKER CONFIGURATION
