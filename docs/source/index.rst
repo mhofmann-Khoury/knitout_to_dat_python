@@ -57,4 +57,4 @@ Quick Navigation
 
 **API Documentation**
 
-* :doc:`knitout_to_dat_python` - Complete API reference
+* :doc:`api/knitout_to_dat_python` - Complete API reference
