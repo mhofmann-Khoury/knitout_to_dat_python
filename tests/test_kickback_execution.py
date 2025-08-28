@@ -1,13 +1,21 @@
 """Test suite for adding kickbacks to a knitout execution - converted to unittest."""
 import unittest
+import warnings
 
-from knitout_interpreter.knitout_execution_structures import Carriage_Pass
+from knitout_interpreter.knitout_execution_structures.Carriage_Pass import Carriage_Pass
 from knitout_interpreter.knitout_language.Knitout_Parser import parse_knitout
-from virtual_knitting_machine.Knitting_Machine import Knitting_Machine
-from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import Carriage_Pass_Direction
 from knitout_interpreter.knitout_operations.kick_instruction import Kick_Instruction
+from virtual_knitting_machine.Knitting_Machine import Knitting_Machine
+from virtual_knitting_machine.knitting_machine_warnings.Yarn_Carrier_System_Warning import (
+    Long_Float_Warning,
+)
+from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import (
+    Carriage_Pass_Direction,
+)
 
-from knitout_to_dat_python.kickback_injection.kickback_execution import Knitout_Executer_With_Kickbacks
+from knitout_to_dat_python.kickback_injection.kickback_execution import (
+    Knitout_Executer_With_Kickbacks,
+)
 
 
 class TestKickbackExecution(unittest.TestCase):
@@ -121,8 +129,10 @@ class TestKickbackExecution(unittest.TestCase):
         outhook 1;
         outhook 2;
         """
-        executer = self.get_kickback_executer(k)
-        kicks = self.get_kicks(executer)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", Long_Float_Warning)
+            executer = self.get_kickback_executer(k)
+            kicks = self.get_kicks(executer)
         self.assertEqual(len(kicks), 1, f"Expected exactly 1 kick to resolve conflict. Got {len(kicks)} kicks.")
         self.assertEqual(kicks[0].direction, Carriage_Pass_Direction.Leftward, f"Expected to kick to closer left edge. Got {kicks}")
 
@@ -139,8 +149,10 @@ class TestKickbackExecution(unittest.TestCase):
         outhook 1;
         outhook 2;
         """
-        executer = self.get_kickback_executer(k)
-        kicks = self.get_kicks(executer)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", Long_Float_Warning)
+            executer = self.get_kickback_executer(k)
+            kicks = self.get_kicks(executer)
         self.assertEqual(len(kicks), 1, f"Expected exactly 1 kick to resolve conflict. Got {len(kicks)} kicks.")
         self.assertEqual(kicks[0].direction, Carriage_Pass_Direction.Rightward, f"Expected to kick to closer right edge. Got {kicks}")
 
@@ -179,8 +191,10 @@ class TestKickbackExecution(unittest.TestCase):
                 outhook 2;
                 outhook 3;
                 """
-        executer = self.get_kickback_executer(k)
-        kicks = self.get_kicks(executer)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", Long_Float_Warning)
+            executer = self.get_kickback_executer(k)
+            kicks = self.get_kicks(executer)
         self.assertEqual(len(kicks), 2, f"Expected 2 kicks for carrier 1 and carrier 2 kick to resolve conflict. Got {len(kicks)} kicks.")
         self.assertEqual(kicks[0].carrier_set.carrier_ids[0], 1, f"Expected carrier 1 to kick. Got {kicks}.")
         self.assertEqual(kicks[1].carrier_set.carrier_ids[0], 2, f"Expected carrier 2 to kick. Got {kicks}.")
@@ -256,9 +270,9 @@ class TestKickbackExecution(unittest.TestCase):
             inhook 1;
             tuck - f40 1;
             releasehook 1;
-            tuck + f40 1;
-            tuck - f40 1;
-            tuck + f40 1;
+            knit + f40 1;
+            knit - f40 1;
+            knit + f40 1;
             outhook 1;
             """
         executer = self.get_kickback_executer(k)
@@ -268,12 +282,12 @@ class TestKickbackExecution(unittest.TestCase):
     def test_plate_kicks(self) -> None:
         k = r"""
         inhook 1;Activating carrier 1
-        knit - f6 1
-        knit - f5 1
-        knit - f4 1
-        knit - f3 1
-        knit - f2 1
-        knit - f1 1
+        tuck - f6 1
+        tuck - f5 1
+        tuck - f4 1
+        tuck - f3 1
+        tuck - f2 1
+        tuck - f1 1
         knit + f1 1
         knit + f2 1
         knit + f3 1

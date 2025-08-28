@@ -6,15 +6,24 @@ It handles the complete reverse conversion pipeline including DAT file reading, 
 import struct
 
 from knitout_interpreter.knitout_execution_structures.Carriage_Pass import Carriage_Pass
+from knitout_interpreter.knitout_operations.carrier_instructions import (
+    Inhook_Instruction,
+    Releasehook_Instruction,
+)
 from knitout_interpreter.knitout_operations.Header_Line import get_machine_header
-from knitout_interpreter.knitout_operations.Rack_Instruction import Rack_Instruction
 from knitout_interpreter.knitout_operations.kick_instruction import Kick_Instruction
-from knitout_interpreter.knitout_operations.carrier_instructions import Inhook_Instruction, Releasehook_Instruction
-from knitout_interpreter.knitout_operations.knitout_instruction import Knitout_Instruction
+from knitout_interpreter.knitout_operations.knitout_instruction import (
+    Knitout_Instruction,
+)
+from knitout_interpreter.knitout_operations.Rack_Instruction import Rack_Instruction
 from virtual_knitting_machine.Knitting_Machine import Knitting_Machine
 
-from knitout_to_dat_python.dat_file_structure.dat_codes.dat_file_color_codes import WIDTH_SPECIFIER
-from knitout_to_dat_python.dat_file_structure.raster_carriage_passes.Pixel_Carriage_Pass_Converter import Pixel_Carriage_Pass_Converter
+from knitout_to_dat_python.dat_file_structure.dat_codes.dat_file_color_codes import (
+    WIDTH_SPECIFIER,
+)
+from knitout_to_dat_python.dat_file_structure.raster_carriage_passes.Pixel_Carriage_Pass_Converter import (
+    Pixel_Carriage_Pass_Converter,
+)
 
 
 class Dat_to_Knitout_Converter:

@@ -5,16 +5,41 @@ It converts knitout operations into colored pixels and option line settings base
 """
 
 from knitout_interpreter.knitout_execution_structures.Carriage_Pass import Carriage_Pass
-from knitout_interpreter.knitout_operations.knitout_instruction import Knitout_Instruction_Type
-from virtual_knitting_machine.Knitting_Machine_Specification import Knitting_Machine_Specification
-from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import Carriage_Pass_Direction
+from knitout_interpreter.knitout_operations.knitout_instruction import (
+    Knitout_Instruction_Type,
+)
+from virtual_knitting_machine.Knitting_Machine_Specification import (
+    Knitting_Machine_Specification,
+)
+from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import (
+    Carriage_Pass_Direction,
+)
 from virtual_knitting_machine.machine_components.needles.Needle import Needle
 
-from knitout_to_dat_python.dat_file_structure.dat_codes.operation_colors import Operation_Color
-from knitout_to_dat_python.dat_file_structure.dat_codes.option_lines import Left_Option_Lines, Right_Option_Lines
-from knitout_to_dat_python.dat_file_structure.dat_codes.option_value_colors import Drop_Sinker_Color, Hook_Operation_Color, Knit_Cancel_Color, Rack_Direction_Color, Rack_Pitch_Color, \
-    Presser_Setting_Color, carriers_to_int, Amiss_Split_Hook_Color, Pause_Color, Link_Process_Color, Carriage_Pass_Direction_Color
-from knitout_to_dat_python.dat_file_structure.dat_codes.dat_file_color_codes import STOPPING_MARK, OPTION_LINE_COUNT
+from knitout_to_dat_python.dat_file_structure.dat_codes.dat_file_color_codes import (
+    OPTION_LINE_COUNT,
+    STOPPING_MARK,
+)
+from knitout_to_dat_python.dat_file_structure.dat_codes.operation_colors import (
+    Operation_Color,
+)
+from knitout_to_dat_python.dat_file_structure.dat_codes.option_lines import (
+    Left_Option_Lines,
+    Right_Option_Lines,
+)
+from knitout_to_dat_python.dat_file_structure.dat_codes.option_value_colors import (
+    Amiss_Split_Hook_Color,
+    Carriage_Pass_Direction_Color,
+    Drop_Sinker_Color,
+    Hook_Operation_Color,
+    Knit_Cancel_Color,
+    Link_Process_Color,
+    Pause_Color,
+    Presser_Setting_Color,
+    Rack_Direction_Color,
+    Rack_Pitch_Color,
+    carriers_to_int,
+)
 
 
 class Raster_Carriage_Pass:

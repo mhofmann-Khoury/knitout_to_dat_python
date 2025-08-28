@@ -3,14 +3,28 @@
 This module provides the Releasehook_Raster_Pass class, which extends the Soft_Miss_Raster_Pass to create specialized carriage passes for releasehook operations.
 These passes are used to release yarn carriers from the knitting machine's yarn-inserting hook system.
 """
-from virtual_knitting_machine.Knitting_Machine_Specification import Knitting_Machine_Specification
-from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import Carriage_Pass_Direction
 from knitout_interpreter.knitout_operations.kick_instruction import Kick_Instruction
+from virtual_knitting_machine.Knitting_Machine_Specification import (
+    Knitting_Machine_Specification,
+)
+from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import (
+    Carriage_Pass_Direction,
+)
 
-from knitout_to_dat_python.dat_file_structure.dat_codes.dat_file_color_codes import NO_CARRIERS
-from knitout_to_dat_python.dat_file_structure.dat_codes.option_value_colors import Hook_Operation_Color, Knit_Cancel_Color, Presser_Setting_Color
-from knitout_to_dat_python.dat_file_structure.dat_codes.option_lines import Right_Option_Lines
-from knitout_to_dat_python.dat_file_structure.raster_carriage_passes.Raster_Soft_Miss_Pass import Soft_Miss_Raster_Pass
+from knitout_to_dat_python.dat_file_structure.dat_codes.dat_file_color_codes import (
+    NO_CARRIERS,
+)
+from knitout_to_dat_python.dat_file_structure.dat_codes.option_lines import (
+    Right_Option_Lines,
+)
+from knitout_to_dat_python.dat_file_structure.dat_codes.option_value_colors import (
+    Hook_Operation_Color,
+    Knit_Cancel_Color,
+    Presser_Setting_Color,
+)
+from knitout_to_dat_python.dat_file_structure.raster_carriage_passes.Raster_Soft_Miss_Pass import (
+    Soft_Miss_Raster_Pass,
+)
 
 
 class Releasehook_Raster_Pass(Soft_Miss_Raster_Pass):

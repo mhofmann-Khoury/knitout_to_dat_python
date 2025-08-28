@@ -4,13 +4,24 @@ This module provides the Outhook_Raster_Pass class, which creates a specialized 
 It extends the Soft_Miss_Raster_Pass to handle yarn carrier outhook functionality.
 """
 
-from virtual_knitting_machine.Knitting_Machine_Specification import Knitting_Machine_Specification
-from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import Carriage_Pass_Direction
-from virtual_knitting_machine.machine_components.yarn_management.Yarn_Carrier_Set import Yarn_Carrier_Set
 from knitout_interpreter.knitout_operations.kick_instruction import Kick_Instruction
+from virtual_knitting_machine.Knitting_Machine_Specification import (
+    Knitting_Machine_Specification,
+)
+from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import (
+    Carriage_Pass_Direction,
+)
+from virtual_knitting_machine.machine_components.yarn_management.Yarn_Carrier_Set import (
+    Yarn_Carrier_Set,
+)
 
-from knitout_to_dat_python.dat_file_structure.dat_codes.option_value_colors import Hook_Operation_Color, Presser_Setting_Color
-from knitout_to_dat_python.dat_file_structure.raster_carriage_passes.Raster_Soft_Miss_Pass import Soft_Miss_Raster_Pass
+from knitout_to_dat_python.dat_file_structure.dat_codes.option_value_colors import (
+    Hook_Operation_Color,
+    Presser_Setting_Color,
+)
+from knitout_to_dat_python.dat_file_structure.raster_carriage_passes.Raster_Soft_Miss_Pass import (
+    Soft_Miss_Raster_Pass,
+)
 
 
 class Outhook_Raster_Pass(Soft_Miss_Raster_Pass):

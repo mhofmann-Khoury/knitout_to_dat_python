@@ -5,13 +5,26 @@ These passes are used for carrier management operations where the carriage moves
 """
 
 from knitout_interpreter.knitout_execution_structures.Carriage_Pass import Carriage_Pass
-from virtual_knitting_machine.Knitting_Machine_Specification import Knitting_Machine_Specification
 from knitout_interpreter.knitout_operations.kick_instruction import Kick_Instruction
+from virtual_knitting_machine.Knitting_Machine_Specification import (
+    Knitting_Machine_Specification,
+)
 
-from knitout_to_dat_python.dat_file_structure.dat_codes.dat_file_color_codes import NO_CARRIERS
-from knitout_to_dat_python.dat_file_structure.dat_codes.option_value_colors import Hook_Operation_Color, Knit_Cancel_Color, Presser_Setting_Color, carriers_to_int
-from knitout_to_dat_python.dat_file_structure.dat_codes.option_lines import Right_Option_Lines
-from knitout_to_dat_python.dat_file_structure.raster_carriage_passes.Raster_Carriage_Pass import Raster_Carriage_Pass
+from knitout_to_dat_python.dat_file_structure.dat_codes.dat_file_color_codes import (
+    NO_CARRIERS,
+)
+from knitout_to_dat_python.dat_file_structure.dat_codes.option_lines import (
+    Right_Option_Lines,
+)
+from knitout_to_dat_python.dat_file_structure.dat_codes.option_value_colors import (
+    Hook_Operation_Color,
+    Knit_Cancel_Color,
+    Presser_Setting_Color,
+    carriers_to_int,
+)
+from knitout_to_dat_python.dat_file_structure.raster_carriage_passes.Raster_Carriage_Pass import (
+    Raster_Carriage_Pass,
+)
 
 
 class Soft_Miss_Raster_Pass(Raster_Carriage_Pass):

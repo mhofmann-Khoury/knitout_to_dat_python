@@ -1,8 +1,12 @@
 """Test cases for the Dat_to_Knitout_Converter class."""
 from unittest import TestCase
 
-from knitout_to_dat_python.knitout_to_dat import knitout_to_dat, dat_to_knitout
-from tests.resources.knitout_diff import diff_knitout_files, Knitout_Diff_Result, KnitoutDiffer
+from knitout_to_dat_python.knitout_to_dat import dat_to_knitout, knitout_to_dat
+from tests.resources.knitout_diff import (
+    Knitout_Diff_Result,
+    KnitoutDiffer,
+    diff_knitout_files,
+)
 from tests.resources.load_ks_resources import load_test_knitscript_to_knitout_to_old_dat
 
 

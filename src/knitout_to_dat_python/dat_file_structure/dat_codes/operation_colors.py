@@ -4,12 +4,21 @@ This module provides the Operation_Color enumeration and utility functions for m
 The color codes represent different types of needle operations including knit, tuck, miss, transfer, and split operations on front and back needle beds.
 """
 from __future__ import annotations
+
 from enum import Enum
 
-from knitout_interpreter.knitout_operations.knitout_instruction import Knitout_Instruction_Type
-from knitout_interpreter.knitout_operations.needle_instructions import Needle_Instruction, Tuck_Instruction, Knit_Instruction, Xfer_Instruction, Split_Instruction, Miss_Instruction
-
 from knitout_interpreter.knitout_operations.kick_instruction import Kick_Instruction
+from knitout_interpreter.knitout_operations.knitout_instruction import (
+    Knitout_Instruction_Type,
+)
+from knitout_interpreter.knitout_operations.needle_instructions import (
+    Knit_Instruction,
+    Miss_Instruction,
+    Needle_Instruction,
+    Split_Instruction,
+    Tuck_Instruction,
+    Xfer_Instruction,
+)
 
 
 class Operation_Color(Enum):

@@ -32,11 +32,11 @@ A tool replicating the functionality of the CMU Textile's Lab Knitout-to-Dat Int
    quickstart
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 4
    :caption: API Reference
    :hidden:
 
-   modules.rst
+   api/knitout_to_dat_python
 
 .. toctree::
    :maxdepth: 1

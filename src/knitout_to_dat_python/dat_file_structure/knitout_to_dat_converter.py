@@ -10,25 +10,57 @@ import struct
 
 from knitout_interpreter.knitout_execution_structures.Carriage_Pass import Carriage_Pass
 from knitout_interpreter.knitout_language.Knitout_Parser import parse_knitout
+from knitout_interpreter.knitout_operations.carrier_instructions import (
+    Inhook_Instruction,
+    Outhook_Instruction,
+    Releasehook_Instruction,
+)
 from knitout_interpreter.knitout_operations.Header_Line import Knitting_Machine_Header
+from knitout_interpreter.knitout_operations.kick_instruction import Kick_Instruction
+from knitout_interpreter.knitout_operations.knitout_instruction import (
+    Knitout_Instruction,
+)
 from knitout_interpreter.knitout_operations.Knitout_Line import Knitout_Line
 from knitout_interpreter.knitout_operations.Pause_Instruction import Pause_Instruction
-from knitout_interpreter.knitout_operations.carrier_instructions import Inhook_Instruction, Releasehook_Instruction, Outhook_Instruction
-from knitout_interpreter.knitout_operations.kick_instruction import Kick_Instruction
-from knitout_interpreter.knitout_operations.knitout_instruction import Knitout_Instruction
 from virtual_knitting_machine.Knitting_Machine import Knitting_Machine
-from virtual_knitting_machine.Knitting_Machine_Specification import Knitting_Position, Knitting_Machine_Specification
-from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import Carriage_Pass_Direction
-from virtual_knitting_machine.machine_components.yarn_management.Yarn_Carrier_Set import Yarn_Carrier_Set
+from virtual_knitting_machine.Knitting_Machine_Specification import (
+    Knitting_Machine_Specification,
+    Knitting_Position,
+)
+from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import (
+    Carriage_Pass_Direction,
+)
+from virtual_knitting_machine.machine_components.yarn_management.Yarn_Carrier_Set import (
+    Yarn_Carrier_Set,
+)
 
-from knitout_to_dat_python.dat_file_structure.dat_bookend_sequences import startup_knit_sequence, finish_knit_sequence
-from knitout_to_dat_python.dat_file_structure.dat_codes.dat_file_color_codes import WIDTH_SPECIFIER
-from knitout_to_dat_python.dat_file_structure.dat_codes.option_value_colors import Hook_Operation_Color, Knit_Cancel_Color, Carriage_Pass_Direction_Color
-from knitout_to_dat_python.dat_file_structure.raster_carriage_passes.Outhook_Raster import Outhook_Raster_Pass
-from knitout_to_dat_python.dat_file_structure.raster_carriage_passes.Raster_Carriage_Pass import Raster_Carriage_Pass
-from knitout_to_dat_python.dat_file_structure.raster_carriage_passes.Raster_Soft_Miss_Pass import Soft_Miss_Raster_Pass
-from knitout_to_dat_python.dat_file_structure.raster_carriage_passes.Releasehook_Raster import Releasehook_Raster_Pass
-from knitout_to_dat_python.kickback_injection.kickback_execution import Knitout_Executer_With_Kickbacks
+from knitout_to_dat_python.dat_file_structure.dat_bookend_sequences import (
+    finish_knit_sequence,
+    startup_knit_sequence,
+)
+from knitout_to_dat_python.dat_file_structure.dat_codes.dat_file_color_codes import (
+    WIDTH_SPECIFIER,
+)
+from knitout_to_dat_python.dat_file_structure.dat_codes.option_value_colors import (
+    Carriage_Pass_Direction_Color,
+    Hook_Operation_Color,
+    Knit_Cancel_Color,
+)
+from knitout_to_dat_python.dat_file_structure.raster_carriage_passes.Outhook_Raster import (
+    Outhook_Raster_Pass,
+)
+from knitout_to_dat_python.dat_file_structure.raster_carriage_passes.Raster_Carriage_Pass import (
+    Raster_Carriage_Pass,
+)
+from knitout_to_dat_python.dat_file_structure.raster_carriage_passes.Raster_Soft_Miss_Pass import (
+    Soft_Miss_Raster_Pass,
+)
+from knitout_to_dat_python.dat_file_structure.raster_carriage_passes.Releasehook_Raster import (
+    Releasehook_Raster_Pass,
+)
+from knitout_to_dat_python.kickback_injection.kickback_execution import (
+    Knitout_Executer_With_Kickbacks,
+)
 
 
 class Knitout_to_Dat_Converter:

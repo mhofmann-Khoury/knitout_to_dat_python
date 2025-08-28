@@ -4,11 +4,17 @@ This module provides functions for creating the standardized startup and finishi
 These sequences ensure proper initialization and termination of knitting operations on the machine.
 """
 from knitout_interpreter.knitout_execution_structures.Carriage_Pass import Carriage_Pass
-from knitout_interpreter.knitout_operations import Miss_Instruction
-from knitout_interpreter.knitout_operations.needle_instructions import Knit_Instruction
-from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import Carriage_Pass_Direction
+from knitout_interpreter.knitout_operations.needle_instructions import (
+    Knit_Instruction,
+    Miss_Instruction,
+)
+from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import (
+    Carriage_Pass_Direction,
+)
 from virtual_knitting_machine.machine_components.needles.Needle import Needle
-from virtual_knitting_machine.machine_components.yarn_management.Yarn_Carrier_Set import Yarn_Carrier_Set
+from virtual_knitting_machine.machine_components.yarn_management.Yarn_Carrier_Set import (
+    Yarn_Carrier_Set,
+)
 
 
 def finish_knit_sequence(pattern_width: int) -> list[Carriage_Pass]:

@@ -4,22 +4,54 @@ This module provides functionality to convert pixel data from DAT files back int
 It serves as the inverse operation of the raster generation process, allowing DAT file data to be interpreted and converted back into knitting machine instructions.
 """
 from knitout_interpreter.knitout_execution_structures.Carriage_Pass import Carriage_Pass
+from knitout_interpreter.knitout_operations.carrier_instructions import (
+    Hook_Instruction,
+    Inhook_Instruction,
+    Outhook_Instruction,
+    Releasehook_Instruction,
+)
+from knitout_interpreter.knitout_operations.kick_instruction import Kick_Instruction
+from knitout_interpreter.knitout_operations.knitout_instruction import (
+    Knitout_Instruction,
+)
+from knitout_interpreter.knitout_operations.needle_instructions import (
+    Drop_Instruction,
+    Needle_Instruction,
+    Split_Instruction,
+    Xfer_Instruction,
+)
 from knitout_interpreter.knitout_operations.Pause_Instruction import Pause_Instruction
 from knitout_interpreter.knitout_operations.Rack_Instruction import Rack_Instruction
-from knitout_interpreter.knitout_operations.carrier_instructions import Hook_Instruction, Releasehook_Instruction, Inhook_Instruction, Outhook_Instruction
-from knitout_interpreter.knitout_operations.knitout_instruction import Knitout_Instruction
-from knitout_interpreter.knitout_operations.needle_instructions import Needle_Instruction, Xfer_Instruction, Split_Instruction, Drop_Instruction
-from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import Carriage_Pass_Direction
+from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import (
+    Carriage_Pass_Direction,
+)
 from virtual_knitting_machine.machine_components.needles.Needle import Needle
-from virtual_knitting_machine.machine_components.yarn_management.Yarn_Carrier_Set import Yarn_Carrier_Set
-from knitout_interpreter.knitout_operations.kick_instruction import Kick_Instruction
+from virtual_knitting_machine.machine_components.yarn_management.Yarn_Carrier_Set import (
+    Yarn_Carrier_Set,
+)
 
-from knitout_to_dat_python.dat_file_structure.dat_codes.operation_colors import Operation_Color
-from knitout_to_dat_python.dat_file_structure.dat_codes.option_lines import Left_Option_Lines, Right_Option_Lines
-from knitout_to_dat_python.dat_file_structure.dat_codes.option_value_colors import Hook_Operation_Color, Carriage_Pass_Direction_Color, pixel_to_carriers, Rack_Direction_Color, \
-    Amiss_Split_Hook_Color, Pause_Color
-from knitout_to_dat_python.dat_file_structure.dat_codes.dat_file_color_codes import STOPPING_MARK, OPTION_LINE_COUNT
-from knitout_to_dat_python.kickback_injection.carriage_pass_with_kick import Carriage_Pass_with_Kick
+from knitout_to_dat_python.dat_file_structure.dat_codes.dat_file_color_codes import (
+    OPTION_LINE_COUNT,
+    STOPPING_MARK,
+)
+from knitout_to_dat_python.dat_file_structure.dat_codes.operation_colors import (
+    Operation_Color,
+)
+from knitout_to_dat_python.dat_file_structure.dat_codes.option_lines import (
+    Left_Option_Lines,
+    Right_Option_Lines,
+)
+from knitout_to_dat_python.dat_file_structure.dat_codes.option_value_colors import (
+    Amiss_Split_Hook_Color,
+    Carriage_Pass_Direction_Color,
+    Hook_Operation_Color,
+    Pause_Color,
+    Rack_Direction_Color,
+    pixel_to_carriers,
+)
+from knitout_to_dat_python.kickback_injection.carriage_pass_with_kick import (
+    Carriage_Pass_with_Kick,
+)
 
 
 class Pixel_Carriage_Pass_Converter:

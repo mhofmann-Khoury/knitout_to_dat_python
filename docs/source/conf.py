@@ -1,6 +1,6 @@
-from importlib.metadata import version, PackageNotFoundError
 import os
 import sys
+from importlib.metadata import PackageNotFoundError, version
 
 # Add the project root to the Python path
 sys.path.insert(0, os.path.abspath('..'))

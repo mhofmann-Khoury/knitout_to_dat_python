@@ -1,12 +1,14 @@
 """Module provides helper functions to convert Knit Script resources into knitout and dat files for testing."""
 from knit_graphs.Knit_Graph import Knit_Graph
-from knit_script import knit_script_to_knitout
-from knit_script.knit_script_interpreter.Knit_Script_Interpreter import Knit_Script_Interpreter
-from knitout_interpreter import Knitout_Executer
-from knitout_interpreter.knitout_operations import Knitout_Comment_Line
+from knit_script.interpret_knit_script import knit_script_to_knitout
+from knit_script.knit_script_interpreter.Knit_Script_Interpreter import (
+    Knit_Script_Interpreter,
+)
+from knitout_interpreter.knitout_execution import Knitout_Executer
+from knitout_interpreter.knitout_operations.Knitout_Line import Knitout_Comment_Line
+from resources.compile_knitout import compile_knitout
 from virtual_knitting_machine.Knitting_Machine import Knitting_Machine
 
-from resources.compile_knitout import compile_knitout
 from tests.resources.load_test_resources import load_test_resource
 
 

@@ -4,13 +4,20 @@ This module provides enumerations for various option line color codes used in DA
 along with utility functions for converting between different representations and determining appropriate settings based on carriage pass characteristics.
 """
 from __future__ import annotations
+
 from enum import Enum
 
 from knitout_interpreter.knitout_execution_structures.Carriage_Pass import Carriage_Pass
-from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import Carriage_Pass_Direction
-from virtual_knitting_machine.machine_components.yarn_management.Yarn_Carrier_Set import Yarn_Carrier_Set
+from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import (
+    Carriage_Pass_Direction,
+)
+from virtual_knitting_machine.machine_components.yarn_management.Yarn_Carrier_Set import (
+    Yarn_Carrier_Set,
+)
 
-from knitout_to_dat_python.dat_file_structure.dat_codes.dat_file_color_codes import NO_CARRIERS
+from knitout_to_dat_python.dat_file_structure.dat_codes.dat_file_color_codes import (
+    NO_CARRIERS,
+)
 
 
 class Link_Process_Color(Enum):

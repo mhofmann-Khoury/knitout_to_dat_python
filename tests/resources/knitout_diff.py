@@ -16,13 +16,30 @@ from dataclasses import dataclass
 from enum import Enum
 
 from knitout_interpreter.knitout_language.Knitout_Parser import parse_knitout
-from knitout_interpreter.knitout_operations.Header_Line import Knitout_Header_Line, Knitout_Header_Line_Type
-from knitout_interpreter.knitout_operations.Knitout_Line import Knitout_Line, Knitout_Version_Line, Knitout_Comment_Line
+from knitout_interpreter.knitout_operations.carrier_instructions import (
+    Yarn_Carrier_Instruction,
+)
+from knitout_interpreter.knitout_operations.Header_Line import (
+    Knitout_Header_Line,
+    Knitout_Header_Line_Type,
+)
+from knitout_interpreter.knitout_operations.knitout_instruction import (
+    Knitout_Instruction,
+    Knitout_Instruction_Type,
+)
+from knitout_interpreter.knitout_operations.Knitout_Line import (
+    Knitout_Comment_Line,
+    Knitout_Line,
+    Knitout_Version_Line,
+)
+from knitout_interpreter.knitout_operations.needle_instructions import (
+    Needle_Instruction,
+    Xfer_Instruction,
+)
 from knitout_interpreter.knitout_operations.Rack_Instruction import Rack_Instruction
-from knitout_interpreter.knitout_operations.carrier_instructions import Yarn_Carrier_Instruction
-from knitout_interpreter.knitout_operations.knitout_instruction import Knitout_Instruction, Knitout_Instruction_Type
-from knitout_interpreter.knitout_operations.needle_instructions import Needle_Instruction, Xfer_Instruction
-from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import Carriage_Pass_Direction
+from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import (
+    Carriage_Pass_Direction,
+)
 
 
 class DiffType(Enum):
@@ -126,7 +143,7 @@ class Knitout_Diff_Line:
         if isinstance(self.instruction, Knitout_Version_Line):
             tokens = ['knitout-version', str(self.instruction.version)]
         elif isinstance(self.instruction, Knitout_Header_Line):
-            tokens = [str(self.instruction.header_type), str(self.instruction.header_value)]
+            tokens = [str(self.instruction.header_type), str(self.instruction._header_value)]
         elif isinstance(self.instruction, Knitout_Instruction):
             tokens = [self.instruction.instruction_type]
             if isinstance(self.instruction, Rack_Instruction):
@@ -508,10 +525,11 @@ class KnitoutDiffer:
         Initialize the KnitoutDiffer.
 
         Args:
-            file1_path: The file path of the first file.
-            file2_path: The file path of the second file.
-            ignore_comments: If True, ignore comment differences
-            ignore_whitespace: If True, ignore whitespace-only differences
+            file1_path (str): The file path of the first file.
+            file2_path (str): The file path of the second file.
+            ignore_comments (bool, optional): If True, ignore comment differences. Defaults to True.
+            ignore_whitespace (bool, optional): If True, ignore whitespace-only differences. Defaults ot True.
+            shift_file1 (int, optional): The amount to shift the needle slots by in the first file. Defaults to 0.
         """
         self.file1_path: str = file1_path
         self.file2_path: str = file2_path
@@ -522,16 +540,16 @@ class KnitoutDiffer:
         if shift_file1 != 0:
             for line in self._lines1:
                 if isinstance(line.instruction, Needle_Instruction):
-                    line.instruction.needle += shift_file1
+                    line.instruction._needle += shift_file1  # TODO: Make needle values settable in these instructions or give an easy shift function to get copies at shifted slots.
                     if line.instruction.has_second_needle:
-                        line.instruction.needle_2 += shift_file1
+                        line.instruction._needle_2 += shift_file1
         self._lines2 = self._clear_meaningless_content(parse_file(self.file2_path))
         if shift_file2 != 0:
             for line in self._lines2:
                 if isinstance(line.instruction, Needle_Instruction):
-                    line.instruction.needle += shift_file2
+                    line.instruction._needle += shift_file2
                     if line.instruction.has_second_needle:
-                        line.instruction.needle_2 += shift_file2
+                        line.instruction._needle_2 += shift_file2
         self._headers1: list[Knitout_Diff_Line] = []
         self._operations1: list[Knitout_Diff_Line] = []
         self._headers2: list[Knitout_Diff_Line] = []
@@ -710,14 +728,14 @@ class KnitoutDiffer:
             if key in headers1_dict:
                 head1 = headers1_dict[key]
                 assert isinstance(head1.instruction, Knitout_Header_Line)
-                val1 = head1.instruction.header_value
+                val1 = head1.instruction._header_value  # TODO: Update Knitout_Header_Line to make header-value property getter
             else:
                 head1 = None
                 val1 = None
             if key in headers2_dict:
                 head2 = headers2_dict[key]
                 assert isinstance(head2.instruction, Knitout_Header_Line)
-                val2 = head2.instruction.header_value
+                val2 = head2.instruction._header_value
             else:
                 head2 = None
                 val2 = None

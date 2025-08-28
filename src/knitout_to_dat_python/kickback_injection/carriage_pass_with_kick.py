@@ -3,9 +3,11 @@
 This module provides a wrapper class for Carriage_Pass that allows kickback instructions to be integrated with regular knit-tuck passes.
 This enables carrier management operations to be combined with knitting operations in a single carriage pass.
 """
-from knitout_interpreter.knitout_execution_structures import Carriage_Pass
-from knitout_interpreter.knitout_operations import Kick_Instruction
-from knitout_interpreter.knitout_operations.needle_instructions import Needle_Instruction
+from knitout_interpreter.knitout_execution_structures.Carriage_Pass import Carriage_Pass
+from knitout_interpreter.knitout_operations.kick_instruction import Kick_Instruction
+from knitout_interpreter.knitout_operations.needle_instructions import (
+    Needle_Instruction,
+)
 
 
 class Carriage_Pass_with_Kick(Carriage_Pass):
