@@ -69,8 +69,15 @@ class TestDat_to_Knitout_Converter(TestCase):
         assert o_js.are_functionally_equivalent, "Original and Javascript code differ"
         assert py_js.are_functionally_equivalent, "Javascript and Python code differ"
 
-    def test_jacquard_seed(self):
+    def test_seed_jacquard(self):
         o_py, o_js, py_js = self.compare_dats_by_knitout('seed_jacquard.k', 'seed_jacquard')
+
+        assert o_py.are_functionally_equivalent, "Original and Python code differ"
+        assert o_js.are_functionally_equivalent, "Original and Javascript code differ"
+        assert py_js.are_functionally_equivalent, "Javascript and Python code differ"
+
+    def test_jacquard_seed(self):
+        o_py, o_js, py_js = self.compare_dats_by_knitout('jacquard_seed.k', 'jacquard_seed')
 
         assert o_py.are_functionally_equivalent, "Original and Python code differ"
         assert o_js.are_functionally_equivalent, "Original and Javascript code differ"

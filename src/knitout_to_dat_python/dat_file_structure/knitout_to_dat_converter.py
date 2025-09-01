@@ -72,51 +72,47 @@ class Knitout_to_Dat_Converter:
     """
 
     # Class constants - palette data that's the same for all DAT files
-    PALETTE_STR: str = ("ff 00 ff 00 ff 00 ff 00 6c 4a ff b4 99 90 80 cf 52 51 eb 00 fc b2 fc fc fc fc "
-                        "64 d8 eb a0 90 73 9d 73 d8 eb ff b4 ac d7 d8 7f d8 90 ca d8 ae bc 80 9f ff dc "
-                        "fc c0 d8 fc 90 ff fd b4 00 a0 32 32 00 35 d8 d8 a8 c0 ff 99 b7 00 e2 c5 90 c0 "
-                        "90 90 4a 00 90 6d 00 00 66 33 85 99 78 ca b4 90 7d ff ff ff 7f 69 fa 81 fc ac "
-                        "7f b2 b4 b4 b4 d4 ff 90 ff c0 c0 73 d8 a9 bf b4 ff 90 d8 b2 aa 00 d8 00 fb 90 "
-                        "81 9d 37 ac dd bf b9 3f ef d7 de fd fe 73 2f 8d fb ff fe ed 06 f5 ea ed ad 3d fc "
-                        "fa ef fd 66 8d 7f 7a 5f 79 9b 71 ff ee a8 ff 9f db f5 ff cd f3 e0 fe c8 79 73 1f "
-                        "bf e5 f3 f6 e0 de f0 cc 4b 64 40 a1 f7 1a e0 67 ff 64 f5 3f 97 ef 14 96 d7 67 "
-                        "b7 ee ba ea 6c bd 26 4e 64 2f bf 9f 7f f3 aa ff e6 bf 57 eb 06 fe 4f ed 6a ef "
-                        "62 b7 dd cf 66 6b b2 7a 5a f7 9c 4c 96 9d 00 00 6e c8 00 64 00 00 ff ff 00 00 "
-                        "ff ff 24 89 67 b4 99 6c 80 90 91 ff eb 7c b4 76 6c 94 b4 d8 c8 90 ac 66 d8 73 "
-                        "7f b2 d8 eb 00 b4 ac c3 48 00 d8 6c a7 b4 8d 9a 60 7f 90 76 fc ff fc fc ff 90 "
-                        "eb 90 ff ff ca e9 d5 af 6c 6c 54 60 ff 66 bc a0 c5 ae cf ff b4 d8 89 70 c0 a5 "
-                        "99 66 c1 ad 7a d6 30 28 6c 48 8f 00 99 66 00 3f a3 64 d8 eb 7f b2 6c 90 d8 95 "
-                        "bf 6c cf cf 90 b2 d8 e5 6a d8 dd d8 b4 73 00 00 9d 96 fd 65 df 5a 9d ac f3 df "
-                        "f7 6e ff db ff fb fb ab 31 c7 fa af 6a af 03 9d fe ea 0c 9f de a7 f5 7d 00 c7 ff "
-                        "67 bf 7f 7f 87 fc ce bf 2f 6f be ba fd f2 5f 2d df c8 7f 5b b5 77 6f 8f db 92 7e "
-                        "f0 5f ff 9d 40 ba f7 ec 6d fb 64 64 96 e3 c7 f7 d3 ff af 7f f5 f6 73 f7 b2 5a "
-                        "5f 88 89 b7 bc fd 7f e9 7f 7e 2f fa 7c f7 03 a5 c7 ea fb 8d ff ff 79 5b 00 e7 "
-                        "8d 67 b9 ec 59 f7 00 bd 96 af 00 00 7d 64 00 00 00 00 ff ff ff ff 90 99 bd d8 "
-                        "99 b4 ff c0 db de 24 91 6c b2 48 63 fc fc c8 fc eb 00 48 b2 01 73 48 ac a0 6c "
-                        "eb e1 90 7f fc d8 e1 d8 f5 46 ff ff 90 75 b4 90 48 90 c0 cf c7 90 ff ff e9 e9 "
-                        "00 ed b4 d8 b4 b4 ff ff bc a0 b2 b7 c0 cf fc fc 99 99 cf b4 ff ff ff ff 03 ff "
-                        "9c 91 d8 b4 a5 8f d2 bb 00 24 b9 0c 6c ac 00 73 6c 48 d8 95 bf 6c 90 90 cf b2 "
-                        "b4 e7 69 90 ad fc 6c 73 00 7f 49 00 fe fd a5 6f 7f ff 7b be ab 11 67 ff b9 55 "
-                        "9d 7f fb de 7f 7f 7f fb f0 93 fe fb eb bf ef 5d f7 fc 8a de ff 96 3a bd df bb f8 "
-                        "3d b0 cf 9e fe 5f fd f3 d9 ff 93 c8 bd aa 37 fd 81 7f be ff 7f f0 91 4b 4c 40 "
-                        "4b 67 ce ff a9 7d ff 64 d3 6f f7 b4 f7 ad cf fc e9 cd 7f 81 af 64 f7 51 f5 a4 "
-                        "7d df 3f cf f7 fd f9 7f df f0 4d 5f fb ff fb 4f df a9 f0 8a 45 ba 96 fc bd 09 "
-                        "b7 00 f2 00 00 00 00 00 64")
-    """str: Hexadecimal string representation of the standard DAT file color palette."""
+    # str: Hexadecimal string representation of the standard DAT file color palette.
+    _PALETTE_STR: str = ("ff 00 ff 00 ff 00 ff 00 6c 4a ff b4 99 90 80 cf 52 51 eb 00 fc b2 fc fc fc fc "
+                         "64 d8 eb a0 90 73 9d 73 d8 eb ff b4 ac d7 d8 7f d8 90 ca d8 ae bc 80 9f ff dc "
+                         "fc c0 d8 fc 90 ff fd b4 00 a0 32 32 00 35 d8 d8 a8 c0 ff 99 b7 00 e2 c5 90 c0 "
+                         "90 90 4a 00 90 6d 00 00 66 33 85 99 78 ca b4 90 7d ff ff ff 7f 69 fa 81 fc ac "
+                         "7f b2 b4 b4 b4 d4 ff 90 ff c0 c0 73 d8 a9 bf b4 ff 90 d8 b2 aa 00 d8 00 fb 90 "
+                         "81 9d 37 ac dd bf b9 3f ef d7 de fd fe 73 2f 8d fb ff fe ed 06 f5 ea ed ad 3d fc "
+                         "fa ef fd 66 8d 7f 7a 5f 79 9b 71 ff ee a8 ff 9f db f5 ff cd f3 e0 fe c8 79 73 1f "
+                         "bf e5 f3 f6 e0 de f0 cc 4b 64 40 a1 f7 1a e0 67 ff 64 f5 3f 97 ef 14 96 d7 67 "
+                         "b7 ee ba ea 6c bd 26 4e 64 2f bf 9f 7f f3 aa ff e6 bf 57 eb 06 fe 4f ed 6a ef "
+                         "62 b7 dd cf 66 6b b2 7a 5a f7 9c 4c 96 9d 00 00 6e c8 00 64 00 00 ff ff 00 00 "
+                         "ff ff 24 89 67 b4 99 6c 80 90 91 ff eb 7c b4 76 6c 94 b4 d8 c8 90 ac 66 d8 73 "
+                         "7f b2 d8 eb 00 b4 ac c3 48 00 d8 6c a7 b4 8d 9a 60 7f 90 76 fc ff fc fc ff 90 "
+                         "eb 90 ff ff ca e9 d5 af 6c 6c 54 60 ff 66 bc a0 c5 ae cf ff b4 d8 89 70 c0 a5 "
+                         "99 66 c1 ad 7a d6 30 28 6c 48 8f 00 99 66 00 3f a3 64 d8 eb 7f b2 6c 90 d8 95 "
+                         "bf 6c cf cf 90 b2 d8 e5 6a d8 dd d8 b4 73 00 00 9d 96 fd 65 df 5a 9d ac f3 df "
+                         "f7 6e ff db ff fb fb ab 31 c7 fa af 6a af 03 9d fe ea 0c 9f de a7 f5 7d 00 c7 ff "
+                         "67 bf 7f 7f 87 fc ce bf 2f 6f be ba fd f2 5f 2d df c8 7f 5b b5 77 6f 8f db 92 7e "
+                         "f0 5f ff 9d 40 ba f7 ec 6d fb 64 64 96 e3 c7 f7 d3 ff af 7f f5 f6 73 f7 b2 5a "
+                         "5f 88 89 b7 bc fd 7f e9 7f 7e 2f fa 7c f7 03 a5 c7 ea fb 8d ff ff 79 5b 00 e7 "
+                         "8d 67 b9 ec 59 f7 00 bd 96 af 00 00 7d 64 00 00 00 00 ff ff ff ff 90 99 bd d8 "
+                         "99 b4 ff c0 db de 24 91 6c b2 48 63 fc fc c8 fc eb 00 48 b2 01 73 48 ac a0 6c "
+                         "eb e1 90 7f fc d8 e1 d8 f5 46 ff ff 90 75 b4 90 48 90 c0 cf c7 90 ff ff e9 e9 "
+                         "00 ed b4 d8 b4 b4 ff ff bc a0 b2 b7 c0 cf fc fc 99 99 cf b4 ff ff ff ff 03 ff "
+                         "9c 91 d8 b4 a5 8f d2 bb 00 24 b9 0c 6c ac 00 73 6c 48 d8 95 bf 6c 90 90 cf b2 "
+                         "b4 e7 69 90 ad fc 6c 73 00 7f 49 00 fe fd a5 6f 7f ff 7b be ab 11 67 ff b9 55 "
+                         "9d 7f fb de 7f 7f 7f fb f0 93 fe fb eb bf ef 5d f7 fc 8a de ff 96 3a bd df bb f8 "
+                         "3d b0 cf 9e fe 5f fd f3 d9 ff 93 c8 bd aa 37 fd 81 7f be ff 7f f0 91 4b 4c 40 "
+                         "4b 67 ce ff a9 7d ff 64 d3 6f f7 b4 f7 ad cf fc e9 cd 7f 81 af 64 f7 51 f5 a4 "
+                         "7d df 3f cf f7 fd f9 7f df f0 4d 5f fb ff fb 4f df a9 f0 8a 45 ba 96 fc bd 09 "
+                         "b7 00 f2 00 00 00 00 00 64")
 
     # Convert palette string to bytes (computed once as class constant)
-    PALETTE_BYTES = bytes.fromhex(PALETTE_STR.replace(' ', ''))
-    """bytes: Binary representation of the DAT file color palette."""
+    _PALETTE_BYTES = bytes.fromhex(_PALETTE_STR.replace(' ', ''))  # bytes: Binary representation of the DAT file color palette.
 
     # DAT file structure constants
-    HEADER_SIZE = 0x200
-    """int: Size of the DAT file header in bytes."""
+    HEADER_SIZE = 0x200  # int: Size of the DAT file header in bytes.
 
-    PALETTE_SIZE = 0x400  # 768 bytes palette + padding to 1024 bytes
-    """int: Size of the palette section in bytes (768 bytes palette + padding to 1024 bytes)."""
+    PALETTE_SIZE = 0x400  # 768 bytes palette + padding to 1024 bytes. Size of the palette section in bytes (768 bytes palette + padding to 1024 bytes).
 
-    DATA_OFFSET = 0x600
-    """int: Offset where the run-length encoded data begins in the DAT file."""
+    DATA_OFFSET = 0x600  # int: Offset where the run-length encoded data begins in the DAT file.
 
     def __init__(self, knitout: str, dat_filename: str, knitout_in_file: bool = True):
         """Initialize a Dat_File instance.
@@ -132,47 +128,25 @@ class Knitout_to_Dat_Converter:
             RuntimeError: If knitting range is outside the specified needle bed range when using Keep position.
         """
         # Validate palette
-        if len(self.PALETTE_BYTES) != 768:
-            raise ValueError(f"Palette should be 768 bytes, got {len(self.PALETTE_BYTES)}")
-
-        self.knitout: str = knitout
-        """str: The knitout file path or content string."""
-
-        self.knitout_is_file: bool = knitout_in_file
-        """bool: Whether knitout parameter represents a file path."""
-
-        if self.knitout_is_file and not os.path.exists(self.knitout):
-            raise FileNotFoundError(f"Knitout file not found: {self.knitout}")
-
-        self.dat_filename: str = dat_filename
-        """str: Output DAT filename."""
-
+        if len(self._PALETTE_BYTES) != 768:
+            raise ValueError(f"Palette should be 768 bytes, got {len(self._PALETTE_BYTES)}")
+        self._knitout: str = knitout
+        self._knitout_is_file: bool = knitout_in_file
+        if self._knitout_is_file and not os.path.exists(self._knitout):
+            raise FileNotFoundError(f"Knitout file not found: {self._knitout}")
+        self._dat_filename: str = dat_filename
         # Knitout parsing results
-        self.knitout_lines: list[Knitout_Line] = parse_knitout(self.knitout, pattern_is_file=self.knitout_is_file)
-        """list[Knitout_Line]: Parsed knitout lines from the input."""
-
-        self.knitout_executer: Knitout_Executer_With_Kickbacks = Knitout_Executer_With_Kickbacks(self.knitout_lines, Knitting_Machine())
-        """Knitout_Executer_With_Kickbacks: Executor for processing knitout instructions with kickback support."""
-
+        self._knitout_lines: list[Knitout_Line] = parse_knitout(self._knitout, pattern_is_file=self._knitout_is_file)
+        self._knitout_executer: Knitout_Executer_With_Kickbacks = Knitout_Executer_With_Kickbacks(self._knitout_lines, Knitting_Machine())
         self._leftmost_slot: int = 0
-        """int: The leftmost needle slot used in the pattern."""
-
         self._rightmost_slot: int = 0
-        """int: The rightmost needle slot used in the pattern."""
-
         self._set_slot_range()
-
         print(f"Needle bed specified as {self.specified_needle_bed_width} needles at gauge {self.specified_gauge} needles per inch.")
-
         # Pattern positioning info (derived from headers)
-        self.position_offset: int = 0
-        """int: Offset for positioning the pattern on the needle bed."""
-
+        self._position_offset: int = 0  # Offset for positioning the pattern on the needle bed.
         self._calculate_positioning()
-
         # Initialize properties that will be set during processing
-        self.raster_data: list[list[int]] = []
-        """list[list[int]]: 2D array of pixel values representing the complete DAT raster."""
+        self._raster_data: list[list[int]] = []  # 2D array of pixel values representing the complete DAT raster.
 
     @property
     def dat_width(self) -> int:
@@ -181,10 +155,10 @@ class Knitout_to_Dat_Converter:
         Returns:
             int: The width in pixels of the dat file. Returns 0 if no raster data exists.
         """
-        if len(self.raster_data) == 0:
+        if len(self._raster_data) == 0:
             return 0
         else:
-            return len(self.raster_data[0])
+            return len(self._raster_data[0])
 
     @property
     def dat_height(self) -> int:
@@ -193,13 +167,14 @@ class Knitout_to_Dat_Converter:
         Returns:
             int: The height in pixels of the dat file.
         """
-        return len(self.raster_data)
+        return len(self._raster_data)
 
     def _set_slot_range(self) -> None:
         """Set the leftmost and rightmost slot ranges used in the knitout process.
 
         Analyzes all carriage passes to determine the minimum and maximum needle positions used, accounting for racking offsets to determine the effective slot range.
         """
+
         def _carriage_pass_range(carriage_pass: Carriage_Pass) -> tuple[int, int]:
             """Get the leftmost and rightmost needle positions in the carriage pass.
 
@@ -210,7 +185,7 @@ class Knitout_to_Dat_Converter:
             return int(sorted_needles[0].racked_position_on_front(cp.rack)), int(sorted_needles[-1].racked_position_on_front(cp.rack))
 
         min_left, max_right = 1000, -1
-        for cp in self.knitout_executer.process:
+        for cp in self._knitout_executer.process:
             if isinstance(cp, Carriage_Pass):
                 left, right = _carriage_pass_range(cp)
                 if left < min_left:
@@ -256,7 +231,7 @@ class Knitout_to_Dat_Converter:
         Returns:
             Knitting_Machine_Header: The Knitting Machine Header parsed from the given knitout. Default header values are set if a header value is not explicitly defined.
         """
-        return self.knitout_executer.executed_header
+        return self._knitout_executer.executed_header
 
     @property
     def machine_specification(self) -> Knitting_Machine_Specification:
@@ -319,17 +294,17 @@ class Knitout_to_Dat_Converter:
             RuntimeError: If knitting range is outside the specified needle bed range when using Keep position.
         """
         if self.specified_position is Knitting_Position.Center:
-            self.position_offset = round((self.specified_needle_bed_width - (self.rightmost_slot - self.leftmost_slot + 1)) / 2)
+            self._position_offset = round((self.specified_needle_bed_width - (self.rightmost_slot - self.leftmost_slot + 1)) / 2)
         elif self.specified_position is Knitting_Position.Keep:
             if self.leftmost_slot > 0 and self.rightmost_slot <= self.specified_needle_bed_width:
-                self.position_offset = self.leftmost_slot
+                self._position_offset = self.leftmost_slot
             else:
                 raise RuntimeError(f"Knitout: Knitting range ({self.leftmost_slot} -> {self.rightmost_slot} is outside of the range of needles from 0 to {self.specified_needle_bed_width}")
         elif self.specified_position is Knitting_Position.Right:  # Let knitPaint auto set for right edge
-            self.position_offset = 0
+            self._position_offset = 0
         else:
             assert self.specified_position is Knitting_Position.Left
-            self.position_offset = 1
+            self._position_offset = 1
 
     def get_dat_header_info(self) -> dict[str, int]:
         """Get current header information.
@@ -340,7 +315,7 @@ class Knitout_to_Dat_Converter:
         return {
             'min_slot': self.leftmost_slot,
             'max_slot': self.rightmost_slot,
-            'position_offset': self.position_offset,
+            'position_offset': self._position_offset,
             'pattern_width': self.knitting_width
         }
 
@@ -368,7 +343,7 @@ class Knitout_to_Dat_Converter:
         startup_rasters = [cp.get_raster_row(self.knitting_width, option_horizontal_buffer, pattern_horizontal_buffer) for cp in startup_sequence]
         dat_width = len(startup_rasters[0])
         base_spacer = [[0 for _ in range(dat_width)] for _ in range(pattern_vertical_buffer)]
-        self.raster_data: list[list[int]] = base_spacer
+        self._raster_data: list[list[int]] = base_spacer
         self._extend_raster_data(startup_rasters)
 
         # Add rasters for the knitout process.
@@ -408,7 +383,7 @@ class Knitout_to_Dat_Converter:
             AssertionError: If the row length doesn't match the expected DAT width.
         """
         assert len(row) == self.dat_width
-        self.raster_data.append(row)
+        self._raster_data.append(row)
 
     def _extend_raster_data(self, rows: list[list[int]]) -> None:
         """Extend the raster data with multiple rows.
@@ -434,17 +409,17 @@ class Knitout_to_Dat_Converter:
         Raises:
             ValueError: If no raster data exists to encode.
         """
-        if not self.raster_data:
+        if not self._raster_data:
             raise ValueError("No raster data to encode. Call create_empty_raster() first.")
 
         index_length_pairs = []
 
         for y in range(self.dat_height):
-            current_color = self.raster_data[y][0]
+            current_color = self._raster_data[y][0]
             run_length = 0
-            assert len(self.raster_data[y]) == self.dat_width
+            assert len(self._raster_data[y]) == self.dat_width
             for x in range(self.dat_width):
-                pixel = self.raster_data[y][x]
+                pixel = self._raster_data[y][x]
 
                 if pixel == current_color and run_length < 255:
                     run_length += 1
@@ -490,7 +465,7 @@ class Knitout_to_Dat_Converter:
             bytearray: Palette section as a bytearray (padded to PALETTE_SIZE).
         """
         palette_section = bytearray(Knitout_to_Dat_Converter.PALETTE_SIZE)
-        palette_section[:len(Knitout_to_Dat_Converter.PALETTE_BYTES)] = Knitout_to_Dat_Converter.PALETTE_BYTES
+        palette_section[:len(Knitout_to_Dat_Converter._PALETTE_BYTES)] = Knitout_to_Dat_Converter._PALETTE_BYTES
         return palette_section
 
     def _get_startup_rasters(self) -> list[Raster_Carriage_Pass]:
@@ -558,7 +533,7 @@ class Knitout_to_Dat_Converter:
         current_machine_state = Knitting_Machine(self.machine_specification)
 
         pause_after_next_pass: bool = False
-        for execution in self.knitout_executer.process:
+        for execution in self._knitout_executer.process:
             if isinstance(execution, Knitout_Instruction):
                 instruction = execution
                 if isinstance(instruction, Inhook_Instruction):
@@ -672,7 +647,7 @@ class Knitout_to_Dat_Converter:
         Raises:
             ValueError: If no raster data exists to write.
         """
-        if not self.raster_data:
+        if not self._raster_data:
             raise ValueError("No raster data to write. Create raster data first.")
 
         # Encode the raster data
@@ -698,10 +673,10 @@ class Knitout_to_Dat_Converter:
             buffer[data_start + i] = value
 
         # Write to file
-        with open(self.dat_filename, 'wb') as f:
+        with open(self._dat_filename, 'wb') as f:
             f.write(buffer)
 
-        print(f"✓ DAT file written: {self.dat_filename}")
+        print(f"✓ DAT file written: {self._dat_filename}")
         print(f"  File size: {len(buffer)} bytes")
         print(f"  Raster: {self.dat_width} x {self.dat_height}")
         print(f"  Encoded data: {len(encoded_data)} bytes")
@@ -713,7 +688,7 @@ class Knitout_to_Dat_Converter:
             width (int): Width of the raster in pixels.
             height (int): Height of the raster in pixels.
         """
-        self.raster_data = [[0 for _ in range(width)] for _ in range(height)]
+        self._raster_data = [[0 for _ in range(width)] for _ in range(height)]
         print(f"Created empty raster: {width} x {height}")
 
     def create_empty_dat(self, width: int = 50, height: int = 10) -> None:
