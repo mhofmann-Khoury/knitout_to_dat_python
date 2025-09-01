@@ -71,11 +71,11 @@ class TestKickbackExecution(unittest.TestCase):
         """Test that two carriers operating at different positions don't conflict."""
         k = r"""
             inhook 1;
-            tuck + f10 1;
+            tuck - f10 1;
             releasehook 1;
             outhook 1;
             inhook 2;
-            tuck + f100 2;
+            tuck - f100 2;
             releasehook 2;
             outhook 2;
         """
@@ -87,10 +87,10 @@ class TestKickbackExecution(unittest.TestCase):
         """Test that two carriers operating at different positions don't conflict."""
         k = r"""
             inhook 1;
-            tuck + f10 1;
+            tuck - f10 1;
             releasehook 1;
             inhook 2;
-            tuck + f100 2;
+            tuck - f100 2;
             releasehook 2;
             outhook 1;
             outhook 2;
@@ -163,8 +163,8 @@ class TestKickbackExecution(unittest.TestCase):
         tuck - f50 1;
         releasehook 1;
         inhook 2;
-        tuck - f{50 - 5 + Knitout_Executer_With_Kickbacks.STOPPING_DISTANCE} 2;
-        tuck - f{50 + 5 - Knitout_Executer_With_Kickbacks.STOPPING_DISTANCE} 2;
+        tuck - f55 2;
+        tuck - f45 2;
         releasehook 2;
         outhook 1;
         outhook 2;
@@ -198,6 +198,22 @@ class TestKickbackExecution(unittest.TestCase):
         self.assertEqual(len(kicks), 2, f"Expected 2 kicks for carrier 1 and carrier 2 kick to resolve conflict. Got {len(kicks)} kicks.")
         self.assertEqual(kicks[0].carrier_set.carrier_ids[0], 1, f"Expected carrier 1 to kick. Got {kicks}.")
         self.assertEqual(kicks[1].carrier_set.carrier_ids[0], 2, f"Expected carrier 2 to kick. Got {kicks}.")
+
+    def test_multiple_kicks_short_pass(self) -> None:
+        k = r"""
+        inhook 1;
+        tuck - f40 1;
+        releasehook 1;
+        inhook 2;
+        tuck - f41 2;
+        tuck - f39 2;
+        releasehook 2;
+        outhook 1;
+        outhook 2;"""
+        executer = self.get_kickback_executer(k)
+        kicks = self.get_kicks(executer)
+        self.assertEqual(len(kicks), 1, f"Expected 1 kicks for carrier 1 for kickback conflicts. Got \n{kicks}")
+        self.assertEqual(kicks[0].carrier_set.carrier_ids[0], 1, f"Expected carrier 1 to kick out of way of carrier 2. Got {kicks}.")
 
     def test_previously_kicked_carrier(self) -> None:
         """Test that a carrier kicked into conflict range is kicked again to resolve the new conflict."""
@@ -251,6 +267,7 @@ class TestKickbackExecution(unittest.TestCase):
         k = r"""
             inhook 1;
             tuck - f40 1;
+            ;Expect kick -f 39 1
             releasehook 1;
             inhook 2;
             tuck - f41 2;
@@ -278,6 +295,46 @@ class TestKickbackExecution(unittest.TestCase):
         executer = self.get_kickback_executer(k)
         kicks = self.get_kicks(executer)
         self.assertEqual(len(kicks), 0, f"Expected 0 kicks. Got {kicks}")
+
+    def test_align_rightward(self) -> None:
+        """Test that carrier is aligned in a prior leftward pass for an upcoming rightward pass"""
+        k = r"""
+            inhook 1;
+            tuck - f4 1;
+            tuck - f2 1;
+            ; expected kick - f1 1;
+            tuck + f1 1;
+            tuck + f3 1;
+            releasehook 1;
+            outhook 1;
+            """
+        executer = self.get_kickback_executer(k)
+        kicks = self.get_kicks(executer)
+        self.assertEqual(len(kicks), 1, f"Expected 1 kicks. Got {kicks}")
+        kick = kicks[0]
+        self.assertEqual(kick.direction, Carriage_Pass_Direction.Leftward, f"Expected leftward kick but got {kick}")
+        self.assertEqual(kick.position, 1, f"Expected f1 kick but got {kick}")
+
+    def test_align_leftward(self) -> None:
+        """Test that carrier is aligned in a prior leftward pass for an upcoming rightward pass"""
+        k = r"""
+            inhook 1;
+            tuck - f4 1;
+            tuck - f2 1;
+            ; expected kick - f1 1;
+            tuck + f1 1;
+            tuck + f3 1;
+            ; expected kick + f4 1;
+            releasehook 1;
+            knit - f4 1;
+            outhook 1;
+            """
+        executer = self.get_kickback_executer(k)
+        kicks = self.get_kicks(executer)
+        self.assertEqual(len(kicks), 2, f"Expected 2 kicks. Got {kicks}")
+        kick = kicks[1]
+        self.assertEqual(kick.direction, Carriage_Pass_Direction.Rightward, f"Expected rightward kick but got {kick}")
+        self.assertEqual(kick.position, 4, f"Expected f4 kick but got {kick}")
 
     def test_plate_kicks(self) -> None:
         k = r"""
@@ -315,21 +372,25 @@ class TestKickbackExecution(unittest.TestCase):
         knit - f3 1 2
         knit - f2 1 2
         knit - f1 1 2
+
         knit + f1 1 2
         knit + f2 1 2
         knit + f3 1 2
         knit + f4 1 2
         knit + f5 1 2
         knit + f6 1 2
+
         knit - f6 2 1
         knit - f5 2 1
-        knit - f4 2 1; Expected Kick to Right of 3
+        knit - f4 2 1;
+        ; Expected Kick + f4 1 2
         knit - f3 1 2
         knit - f2 1 2
         knit - f1 1 2
         knit + f1 2 1
         knit + f2 2 1
-        knit + f3 2 1; Expected kick to left of 4
+        knit + f3 2 1
+        ; Expected Kick - f3 1 2
         knit + f4 1 2
         knit + f5 1 2
         knit + f6 1 2

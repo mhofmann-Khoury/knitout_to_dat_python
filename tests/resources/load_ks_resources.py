@@ -6,10 +6,20 @@ from knit_script.knit_script_interpreter.Knit_Script_Interpreter import (
 )
 from knitout_interpreter.knitout_execution import Knitout_Executer
 from knitout_interpreter.knitout_operations.Knitout_Line import Knitout_Comment_Line
+from knitout_interpreter.run_knitout import run_knitout
 from resources.compile_knitout import compile_knitout
 from virtual_knitting_machine.Knitting_Machine import Knitting_Machine
 
 from tests.resources.load_test_resources import load_test_resource
+
+
+def _clean_knitout(executer: Knitout_Executer):
+    clean_instructions = []
+    for instruction in executer.executed_instructions:
+        instruction.comment = None
+        if not isinstance(instruction, Knitout_Comment_Line):
+            clean_instructions.append(instruction)
+    executer.executed_instructions = clean_instructions
 
 
 def knit_script_to_knitout_to_dat(pattern: str, knitout_name: str, dat_name: str | None = None, pattern_is_filename: bool = False, **python_variables) -> tuple[Knit_Graph, Knitting_Machine]:
@@ -29,13 +39,25 @@ def knit_script_to_knitout_to_dat(pattern: str, knitout_name: str, dat_name: str
     return knit_graph, machine_state
 
 
-def _clean_knitout(executer: Knitout_Executer):
-    clean_instructions = []
-    for instruction in executer.executed_instructions:
-        instruction.comment = None
-        if not isinstance(instruction, Knitout_Comment_Line):
-            clean_instructions.append(instruction)
-    executer.executed_instructions = clean_instructions
+def load_test_knitout_to_dat(k_name: str, dat_name: str) -> tuple[str, str]:
+    """
+    Executes the knitout in the given resource file and generates a cleaned version without comments.
+    Args:
+        k_name (str): The name of the knitout file in the test resources' folder.
+        dat_name (str): The name of the dat file to generate from the cleaned knitout instructions.
+
+    Returns:
+        tuple[str, str]: A tuple of the name with the file path information of the knitout resource file and the name of the generated cleaned knitout file.
+    """
+    test_k_name = load_test_resource(k_name)
+    knitout, _machine, _graph = run_knitout(test_k_name)
+    knitout_executer = Knitout_Executer(knitout)
+    _clean_knitout(knitout_executer)
+    clean_k_name = f"{test_k_name[0:-2]}_clean.k"
+    knitout_executer.write_executed_instructions(clean_k_name)
+    success = compile_knitout(clean_k_name, dat_name)
+    assert success, f"Dat file could not be produced from {clean_k_name}"
+    return test_k_name, clean_k_name
 
 
 def load_test_knitscript_to_knitout(test_knitscript_filename: str, test_knitout_filename: str, **python_variables) -> str:

@@ -80,7 +80,7 @@ exclude = [
 [tool.poetry.dependencies]
 python = ">=3.11,<3.13"                # Minimum Python version (allows 3.11.x, 3.12.x, etc.)
 knitout-interpreter = ">=0.0.22"
-virtual-knitting-machine = ">=0.0.19"
+virtual-knitting-machine = ">=0.0.20"
 
 
 [tool.poetry.group.dev.dependencies]

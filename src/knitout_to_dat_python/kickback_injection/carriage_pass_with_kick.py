@@ -38,7 +38,7 @@ class Carriage_Pass_with_Kick(Carriage_Pass):
         super().__init__(sorted_instructions[0], carriage_pass.rack, carriage_pass.all_needle_rack)
         for instruction in sorted_instructions[1:]:
             _added = self.add_instruction(instruction, self.rack, self.all_needle_rack)
-            assert _added
+            assert _added, f"Couldn't add {instruction} to {carriage_pass}"
 
     def compatible_with_pass_type(self, instruction: Needle_Instruction) -> bool:
         """Check if an instruction is compatible with this carriage pass type.
