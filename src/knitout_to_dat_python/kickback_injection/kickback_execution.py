@@ -137,11 +137,11 @@ class Knitout_Executer_With_Kickbacks(Knitout_Executer):
             tuple[int, int]: The leftmost and rightmost positions that carriers will move in this action.
         """
         leftmost_position, rightmost_position = carriage_pass.carriage_pass_range()
-        for carrier in self.get_carriers(carriage_pass.carrier_set):  # Include movements of involved carriers to the starting position of the carriage pass.
-            carrier_position = self._get_carrier_position_range(carrier)
-            if isinstance(carrier_position, int):  # Specific position, no kickbacks
-                leftmost_position = min(carrier_position, leftmost_position)
-                rightmost_position = max(carrier_position, rightmost_position)
+        # for carrier in self.get_carriers(carriage_pass.carrier_set):  # Include movements of involved carriers to the starting position of the carriage pass.
+        #     carrier_position = self._get_carrier_position_range(carrier)
+        #     if isinstance(carrier_position, int):  # Specific position, no kickbacks
+        #         leftmost_position = min(carrier_position, leftmost_position)
+        #         rightmost_position = max(carrier_position, rightmost_position)
         return leftmost_position, rightmost_position
 
     def _kicks_out_of_conflict_zone(self, leftmost_conflict: int, rightmost_conflict: int, exempt_carriers: set[Yarn_Carrier],
