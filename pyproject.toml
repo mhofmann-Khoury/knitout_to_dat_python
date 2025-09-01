@@ -12,7 +12,7 @@ build-backend = "poetry.core.masonry.api"  # Use Poetry's build system
 # All the information about your project that will appear on PyPI
 [tool.poetry]
 name = "knitout-to-dat-python"  # Package name on PyPI (use hyphens)
-version = "0.0.2"               # Current version (update this for each release)
+version = "0.0.3"               # Current version (update this for each release)
 description = "A tool replicating the functionality of the CMU Textile's Lab Knitout-to-Dat Interpreter implemented in Javascript. This python library can convert Knitout files into Shima Seiki DAT files."
 authors = ["Megan Hofmann <m.hofmann@northeastern.edu>"]       # Primary authors
 maintainers = ["Megan Hofmann <m.hofmann@northeastern.edu>"]   # Current maintainers
