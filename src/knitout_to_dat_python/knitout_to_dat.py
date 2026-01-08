@@ -3,12 +3,9 @@
 This module provides high-level utility functions for converting between knitout and DAT file formats.
 It serves as the primary interface for users of the knitout-to-dat-python library, offering simple function calls for both forward and reverse conversion operations.
 """
-from knitout_to_dat_python.dat_file_structure.Dat_to_Knitout_Converter import (
-    Dat_to_Knitout_Converter,
-)
-from knitout_to_dat_python.dat_file_structure.knitout_to_dat_converter import (
-    Knitout_to_Dat_Converter,
-)
+
+from knitout_to_dat_python.dat_file_structure.Dat_to_Knitout_Converter import Dat_to_Knitout_Converter
+from knitout_to_dat_python.dat_file_structure.knitout_to_dat_converter import Knitout_to_Dat_Converter
 
 
 def knitout_to_dat(knitout_program: str, dat_filename: str | None = None, knitout_in_file: bool = True) -> str:
@@ -30,8 +27,8 @@ def knitout_to_dat(knitout_program: str, dat_filename: str | None = None, knitou
     """
     if dat_filename is None:
         if not knitout_in_file:
-            raise ValueError('A knitout file must be specified if dat_filename is not specified')
-        dat_filename = knitout_program.split('.')[0] + '.dat'
+            raise ValueError("A knitout file must be specified if dat_filename is not specified")
+        dat_filename = knitout_program.split(".")[0] + ".dat"
     converter = Knitout_to_Dat_Converter(knitout_program, dat_filename, knitout_in_file=knitout_in_file)
     converter.process_knitout_to_dat()
     return dat_filename
@@ -51,7 +48,7 @@ def dat_to_knitout(dat_file: str, knitout_file: str | None = None) -> str:
         str: The name of resulting knitout file.
     """
     if knitout_file is None:
-        knitout_file = dat_file.split('.')[0] + '.k'
+        knitout_file = dat_file.split(".")[0] + ".k"
     converter = Dat_to_Knitout_Converter(dat_file)
     converter.write_knitout(knitout_file)
     return knitout_file

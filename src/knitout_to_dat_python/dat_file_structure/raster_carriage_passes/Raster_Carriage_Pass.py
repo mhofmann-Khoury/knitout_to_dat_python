@@ -5,28 +5,14 @@ It converts knitout operations into colored pixels and option line settings base
 """
 
 from knitout_interpreter.knitout_execution_structures.Carriage_Pass import Carriage_Pass
-from knitout_interpreter.knitout_operations.knitout_instruction import (
-    Knitout_Instruction_Type,
-)
-from virtual_knitting_machine.Knitting_Machine_Specification import (
-    Knitting_Machine_Specification,
-)
-from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import (
-    Carriage_Pass_Direction,
-)
+from knitout_interpreter.knitout_operations.knitout_instruction import Knitout_Instruction_Type
+from virtual_knitting_machine.Knitting_Machine_Specification import Knitting_Machine_Specification
+from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import Carriage_Pass_Direction
 from virtual_knitting_machine.machine_components.needles.Needle import Needle
 
-from knitout_to_dat_python.dat_file_structure.dat_codes.dat_file_color_codes import (
-    OPTION_LINE_COUNT,
-    STOPPING_MARK,
-)
-from knitout_to_dat_python.dat_file_structure.dat_codes.operation_colors import (
-    Operation_Color,
-)
-from knitout_to_dat_python.dat_file_structure.dat_codes.option_lines import (
-    Left_Option_Lines,
-    Right_Option_Lines,
-)
+from knitout_to_dat_python.dat_file_structure.dat_codes.dat_file_color_codes import OPTION_LINE_COUNT, STOPPING_MARK
+from knitout_to_dat_python.dat_file_structure.dat_codes.operation_colors import Operation_Color
+from knitout_to_dat_python.dat_file_structure.dat_codes.option_lines import Left_Option_Lines, Right_Option_Lines
 from knitout_to_dat_python.dat_file_structure.dat_codes.option_value_colors import (
     Amiss_Split_Hook_Color,
     Carriage_Pass_Direction_Color,
@@ -49,11 +35,20 @@ class Raster_Carriage_Pass:
     It processes carriage pass instructions and machine settings to create the appropriate pixel representation.
     """
 
-    def __init__(self, carriage_pass: Carriage_Pass, machine_specification: Knitting_Machine_Specification, min_knitting_slot: int, max_knitting_slot: int,
-                 hook_operation: Hook_Operation_Color = Hook_Operation_Color.No_Hook_Operation,
-                 stitch_number: int = 5, speed_number: int = 0, presser_setting: Presser_Setting_Color = Presser_Setting_Color.Off,
-                 pause: bool = False,
-                 knit_cancel: Knit_Cancel_Color = Knit_Cancel_Color.Standard, drop_sinker: bool = False):
+    def __init__(
+        self,
+        carriage_pass: Carriage_Pass,
+        machine_specification: Knitting_Machine_Specification,
+        min_knitting_slot: int,
+        max_knitting_slot: int,
+        hook_operation: Hook_Operation_Color = Hook_Operation_Color.No_Hook_Operation,
+        stitch_number: int = 5,
+        speed_number: int = 0,
+        presser_setting: Presser_Setting_Color = Presser_Setting_Color.Off,
+        pause: bool = False,
+        knit_cancel: Knit_Cancel_Color = Knit_Cancel_Color.Standard,
+        drop_sinker: bool = False,
+    ):
         """Initialize a Raster_Pass from a Carriage_Pass.
 
         Args:
@@ -85,7 +80,7 @@ class Raster_Carriage_Pass:
         """Hook_Operation_Color: The hook operation setting for this pass."""
 
         if self.hook_operation is Hook_Operation_Color.In_Hook_Operation:
-            assert self.carriage_pass.direction is Carriage_Pass_Direction.Leftward, f"Knitout Error: Cannot inhook on a rightward knitting pass."
+            assert self.carriage_pass.direction is Carriage_Pass_Direction.Leftward, "Knitout Error: Cannot inhook on a rightward knitting pass."
 
         self.max_knitting_slot: int = max_knitting_slot
         """int: The maximum slot of knitting operations in this file."""
@@ -514,7 +509,7 @@ class Raster_Carriage_Pass:
         left_stop_mark += offset_slots
         right_stop_mark += offset_slots
         for slot_index in range(-1, pattern_width + 1):  # Add needle operations for each index.
-            if slot_index == left_stop_mark or slot_index == right_stop_mark:  # A stopping mark index has been found.
+            if slot_index in (left_stop_mark, right_stop_mark):  # A stopping mark index has been found.
                 pattern_raster.append(STOPPING_MARK)
             elif (slot_index - offset_slots) in self.slot_colors:  # An operation is specified for this slot
                 pattern_raster.append(int(self.slot_colors[slot_index - offset_slots]))
@@ -599,5 +594,4 @@ class Raster_Carriage_Pass:
         direction = self.carriage_pass.direction.name if self.carriage_pass.direction else "None"
         carriers = self.carriage_pass.carrier_set.carrier_ids if self.carriage_pass.carrier_set else []
 
-        return (f"Raster_Pass(slots={slot_range}, direction={direction}, "
-                f"carriers={carriers}, operations={len(self.slot_colors)})")
+        return f"Raster_Pass(slots={slot_range}, direction={direction}, " f"carriers={carriers}, operations={len(self.slot_colors)})"

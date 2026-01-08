@@ -5,23 +5,12 @@ It extends the Soft_Miss_Raster_Pass to handle yarn carrier outhook functionalit
 """
 
 from knitout_interpreter.knitout_operations.kick_instruction import Kick_Instruction
-from virtual_knitting_machine.Knitting_Machine_Specification import (
-    Knitting_Machine_Specification,
-)
-from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import (
-    Carriage_Pass_Direction,
-)
-from virtual_knitting_machine.machine_components.yarn_management.Yarn_Carrier_Set import (
-    Yarn_Carrier_Set,
-)
+from virtual_knitting_machine.Knitting_Machine_Specification import Knitting_Machine_Specification
+from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import Carriage_Pass_Direction
+from virtual_knitting_machine.machine_components.yarn_management.Yarn_Carrier_Set import Yarn_Carrier_Set
 
-from knitout_to_dat_python.dat_file_structure.dat_codes.option_value_colors import (
-    Hook_Operation_Color,
-    Presser_Setting_Color,
-)
-from knitout_to_dat_python.dat_file_structure.raster_carriage_passes.Raster_Soft_Miss_Pass import (
-    Soft_Miss_Raster_Pass,
-)
+from knitout_to_dat_python.dat_file_structure.dat_codes.option_value_colors import Hook_Operation_Color, Presser_Setting_Color
+from knitout_to_dat_python.dat_file_structure.raster_carriage_passes.Raster_Soft_Miss_Pass import Soft_Miss_Raster_Pass
 
 
 class Outhook_Raster_Pass(Soft_Miss_Raster_Pass):
@@ -31,10 +20,18 @@ class Outhook_Raster_Pass(Soft_Miss_Raster_Pass):
     The pass is implemented as a soft-miss operation with specific hook operation settings and always moves in the rightward direction.
     """
 
-    def __init__(self, carrier_position: int, carrier_id: int, machine_specification: Knitting_Machine_Specification,
-                 min_knitting_slot: int, max_knitting_slot: int,
-                 stitch_number: int = 5, speed_number: int = 0, presser_setting: Presser_Setting_Color = Presser_Setting_Color.Off,
-                 pause: bool = False):
+    def __init__(
+        self,
+        carrier_position: int,
+        carrier_id: int,
+        machine_specification: Knitting_Machine_Specification,
+        min_knitting_slot: int,
+        max_knitting_slot: int,
+        stitch_number: int = 5,
+        speed_number: int = 0,
+        presser_setting: Presser_Setting_Color = Presser_Setting_Color.Off,
+        pause: bool = False,
+    ):
         """Initialize an Outhook_Raster_Pass.
 
         Creates a raster pass that performs an outhook operation for a specific yarn carrier.
@@ -58,5 +55,14 @@ class Outhook_Raster_Pass(Soft_Miss_Raster_Pass):
         """int: The ID of the carrier being outhooked."""
 
         out_kick_instruction = Kick_Instruction(self.carriage_position, Carriage_Pass_Direction.Rightward, Yarn_Carrier_Set([self.carrier_id]), comment="Kickback for outhook")
-        super().__init__(out_kick_instruction, machine_specification, min_knitting_slot, max_knitting_slot, hook_operation=Hook_Operation_Color.Out_Hook_Operation, stitch_number=stitch_number,
-                         speed_number=speed_number, presser_setting=presser_setting, pause=pause)
+        super().__init__(
+            out_kick_instruction,
+            machine_specification,
+            min_knitting_slot,
+            max_knitting_slot,
+            hook_operation=Hook_Operation_Color.Out_Hook_Operation,
+            stitch_number=stitch_number,
+            speed_number=speed_number,
+            presser_setting=presser_setting,
+            pause=pause,
+        )

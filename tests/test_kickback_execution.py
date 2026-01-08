@@ -1,4 +1,5 @@
 """Test suite for adding kickbacks to a knitout execution - converted to unittest."""
+
 import unittest
 import warnings
 
@@ -6,16 +7,10 @@ from knitout_interpreter.knitout_execution_structures.Carriage_Pass import Carri
 from knitout_interpreter.knitout_language.Knitout_Parser import parse_knitout
 from knitout_interpreter.knitout_operations.kick_instruction import Kick_Instruction
 from virtual_knitting_machine.Knitting_Machine import Knitting_Machine
-from virtual_knitting_machine.knitting_machine_warnings.Yarn_Carrier_System_Warning import (
-    Long_Float_Warning,
-)
-from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import (
-    Carriage_Pass_Direction,
-)
+from virtual_knitting_machine.knitting_machine_warnings.Yarn_Carrier_System_Warning import Long_Float_Warning
+from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import Carriage_Pass_Direction
 
-from knitout_to_dat_python.kickback_injection.kickback_execution import (
-    Knitout_Executer_With_Kickbacks,
-)
+from knitout_to_dat_python.kickback_injection.kickback_execution import Knitout_Executer_With_Kickbacks
 
 
 class TestKickbackExecution(unittest.TestCase):
@@ -158,7 +153,7 @@ class TestKickbackExecution(unittest.TestCase):
 
     def test_kick_direction_left_equal_distance(self) -> None:
         """Test that a carrier gets kicked left when the distances out of the conflict zone are equal."""
-        k = fr"""
+        k = rf"""
         inhook 1;
         tuck - f50 1;
         releasehook 1;

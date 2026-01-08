@@ -2,10 +2,10 @@ import cast_ons;
 pause; // before any action, including carrier setting -> sets after the first carriage pass
 with Carrier as c:{
 	in Leftward direction:{
-		knit Front_Needles[0:pattern_width];
+		tuck Front_Needles[0:pattern_width];
 	}
 	in Rightward direction:{
-		knit Loops;
+		tuck Loops;
 	}
 	releasehook;
 	pause; //pause before releashook -> occurs after next leftward carriage pass

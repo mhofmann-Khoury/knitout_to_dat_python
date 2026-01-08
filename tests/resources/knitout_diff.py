@@ -16,34 +16,18 @@ from dataclasses import dataclass
 from enum import Enum
 
 from knitout_interpreter.knitout_language.Knitout_Parser import parse_knitout
-from knitout_interpreter.knitout_operations.carrier_instructions import (
-    Yarn_Carrier_Instruction,
-)
-from knitout_interpreter.knitout_operations.Header_Line import (
-    Knitout_Header_Line,
-    Knitout_Header_Line_Type,
-)
-from knitout_interpreter.knitout_operations.knitout_instruction import (
-    Knitout_Instruction,
-    Knitout_Instruction_Type,
-)
-from knitout_interpreter.knitout_operations.Knitout_Line import (
-    Knitout_Comment_Line,
-    Knitout_Line,
-    Knitout_Version_Line,
-)
-from knitout_interpreter.knitout_operations.needle_instructions import (
-    Needle_Instruction,
-    Xfer_Instruction,
-)
+from knitout_interpreter.knitout_operations.carrier_instructions import Yarn_Carrier_Instruction
+from knitout_interpreter.knitout_operations.Header_Line import Knitout_Header_Line, Knitout_Header_Line_Type, Knitout_Version_Line
+from knitout_interpreter.knitout_operations.knitout_instruction import Knitout_Instruction, Knitout_Instruction_Type
+from knitout_interpreter.knitout_operations.Knitout_Line import Knitout_Comment_Line, Knitout_Line
+from knitout_interpreter.knitout_operations.needle_instructions import Needle_Instruction, Xfer_Instruction
 from knitout_interpreter.knitout_operations.Rack_Instruction import Rack_Instruction
-from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import (
-    Carriage_Pass_Direction,
-)
+from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import Carriage_Pass_Direction
 
 
 class DiffType(Enum):
     """Types of differences that can be found between knitout files."""
+
     HEADER = "header"
     OPERATION = "operation"
     STRUCTURE = "structure"
@@ -67,6 +51,7 @@ class Knitout_Diff_Line:
         instruction: The parsed Knitout Line.
         line_number: Original line number in the file.
     """
+
     instruction: Knitout_Line
     line_number: int
 
@@ -78,12 +63,12 @@ class Knitout_Diff_Line:
                 return ""  # Comment-only lines become empty
             else:
                 # For other instructions, return just the instruction part without comment
-                return str(self.instruction).split(';')[0].rstrip()
+                return str(self.instruction).split(";")[0].rstrip()
         else:
             return str(self)
 
     def __str__(self) -> str:
-        return str(self.instruction).rstrip('\n\r')
+        return str(self.instruction).rstrip("\n\r")
 
     def __repr__(self) -> str:
         return f"{self.line_number}: {self.instruction}"
@@ -141,7 +126,7 @@ class Knitout_Diff_Line:
         """
         tokens = []
         if isinstance(self.instruction, Knitout_Version_Line):
-            tokens = ['knitout-version', str(self.instruction.version)]
+            tokens = ["knitout-version", str(self.instruction.version)]
         elif isinstance(self.instruction, Knitout_Header_Line):
             tokens = [str(self.instruction.header_type), str(self.instruction._header_value)]
         elif isinstance(self.instruction, Knitout_Instruction):
@@ -165,17 +150,17 @@ class Knitout_Diff_Line:
 
 class Knitout_Difference_Block_Tag(Enum):
     """Enumeration of different Knitout Difference Block Tags."""
-    equal = 'equal'
-    insert = 'insert'
-    delete = 'delete'
-    replace = 'replace'
+
+    equal = "equal"
+    insert = "insert"
+    delete = "delete"
+    replace = "replace"
 
 
 class Knitout_Difference_Block:
     """Class for tracking a block of differences between 2 knitout files."""
 
-    def __init__(self, tag: Knitout_Difference_Block_Tag | str, lines1: list[Knitout_Diff_Line], lines2: list[Knitout_Diff_Line],
-                 start_1: int, end_1: int, start_2: int, end_2: int):
+    def __init__(self, tag: Knitout_Difference_Block_Tag | str, lines1: list[Knitout_Diff_Line], lines2: list[Knitout_Diff_Line], start_1: int, end_1: int, start_2: int, end_2: int):
         self.end_2: int = end_2
         self.start_2: int = start_2
         self.end_1: int = end_1
@@ -269,11 +254,11 @@ class Knitout_Difference_Block:
             line2_str = str(line2).strip()
             report.append(f"{left_mod} {line1_str} {mid_mod} {line2_str} {right_mod}")
         if len(self.lines1) > len(self.lines2):
-            for line1 in self.lines1[len(self.lines2):]:
+            for line1 in self.lines1[len(self.lines2) :]:
                 line1_str = str(line1).strip()
                 report.append(f"{left_mod} {line1_str} {mid_mod} NA {right_mod}")
         elif len(self.lines1) < len(self.lines2):
-            for line2 in self.lines2[len(self.lines1):]:
+            for line2 in self.lines2[len(self.lines1) :]:
                 line2_str = str(line2).strip()
                 report.append(f"{left_mod} NA {mid_mod} {line2_str} {right_mod}")
         report.append("--------------------------------------------------------")
@@ -288,10 +273,12 @@ class Knitout_Difference_Block:
         Returns:
             True if the lines (ignoring comments) could be rearranged to the same result.
         """
-        if (self.change_type is Knitout_Difference_Block_Tag.replace  # must be set as replacement
-                and len(self.lines1) != len(self.lines2) and  # Must be the same size
-                any(not isinstance(l.instruction, Needle_Instruction) for l in self.lines1) and
-                any(not isinstance(l.instruction, Needle_Instruction) for l in self.lines2)):
+        if (
+            self.change_type is Knitout_Difference_Block_Tag.replace  # must be set as replacement
+            and len(self.lines1) != len(self.lines2)  # Must be the same size
+            and any(not isinstance(l.instruction, Needle_Instruction) for l in self.lines1)
+            and any(not isinstance(l.instruction, Needle_Instruction) for l in self.lines2)
+        ):
             return False  # Non-Needle instructions cannot be rearranged to be equivalent.
         normalized_lines_1 = set(l.get_normalized_string(ignore_comments=True) for l in self.lines1)
         normalized_lines_2 = set(l.get_normalized_string(ignore_comments=True) for l in self.lines2)
@@ -446,7 +433,7 @@ class Knitout_Diff_Result:
             summary_parts.append(f"Operation differences: {len(self.significant_diffs)} blocks, {total_changes} lines")
             for diff in self.significant_diffs:
                 summary_parts.extend(diff.report())
-        return '\n'.join(summary_parts)
+        return "\n".join(summary_parts)
 
     def header_difference_summary(self) -> list[str]:
         """
@@ -457,10 +444,10 @@ class Knitout_Diff_Result:
             return ["No header differences."]
         summary_parts = [f"Header differences: {len(self.header_diffs)}"]
         for diff in self.header_diffs:
-            key = diff['key']
-            if diff['value1'] is None:
+            key = diff["key"]
+            if diff["value1"] is None:
                 summary_parts.append(f"  + Added header: {key}")
-            elif diff['value2'] is None:
+            elif diff["value2"] is None:
                 summary_parts.append(f"  - Removed header: {key}")
             else:
                 summary_parts.append(f"  ~ Modified header: {key}")
@@ -626,8 +613,9 @@ class KnitoutDiffer:
             current_block = [first_op]
             for op in op_block[1:]:
                 op_dir = _get_op_direction(op)
-                if (op_dir != current_direction or  # The direction changed, so switch to new block
-                        (isinstance(op.instruction, Needle_Instruction) and op.instruction.needle in needles_in_block)):  # A needle re-occurred, so this is a new carriage pass.
+                if op_dir != current_direction or (  # The direction changed, so switch to new block
+                    isinstance(op.instruction, Needle_Instruction) and op.instruction.needle in needles_in_block
+                ):  # A needle re-occurred, so this is a new carriage pass.
                     blocks_by_direction.append(current_block)
                     current_block = [op]
                     current_direction = op_dir
@@ -740,14 +728,16 @@ class KnitoutDiffer:
                 head2 = None
                 val2 = None
             if val1 != val2:
-                diffs.append({
-                    'type': DiffType.HEADER,
-                    'key': key,
-                    'value1': val1,
-                    'value2': val2,
-                    'line1': head1.line_number if head1 is not None else None,
-                    'line2': head2.line_number if head2 is not None else None
-                })
+                diffs.append(
+                    {
+                        "type": DiffType.HEADER,
+                        "key": key,
+                        "value1": val1,
+                        "value2": val2,
+                        "line1": head1.line_number if head1 is not None else None,
+                        "line2": head2.line_number if head2 is not None else None,
+                    }
+                )
 
         return diffs
 
@@ -765,7 +755,7 @@ class KnitoutDiffer:
             block_diffs = []
             matcher = difflib.SequenceMatcher(None, normalized_block1, normalized_block2)
             for tag, i1, i2, j1, j2 in matcher.get_opcodes():
-                if tag == 'equal':
+                if tag == "equal":
                     continue
                 if i1 >= len(block_1):
                     start1 = block_1[-1].line_number + 1
@@ -783,29 +773,46 @@ class KnitoutDiffer:
                     end2 = block_2[-1].line_number + 1
                 else:
                     end2 = block_2[j2].line_number
-                block_diffs.append(Knitout_Difference_Block(tag, block_1[i1:i2], block_2[j1:j2],
-                                                            start1, end1, start2, end2))
+                block_diffs.append(Knitout_Difference_Block(tag, block_1[i1:i2], block_2[j1:j2], start1, end1, start2, end2))
             if len(block_diffs) > 0:  # some differences, try rearranging
-                block_diff = Knitout_Difference_Block(Knitout_Difference_Block_Tag.replace, block_1, block_2,
-                                                      block_1[0].line_number, block_1[-1].line_number, block_2[0].line_number, block_2[-1].line_number)
-                if (block_diff.can_be_rearranged() and
-                        (block_diff.is_transfer_only_block() or block_diff.is_equivalent_all_needle())):
+                block_diff = Knitout_Difference_Block(
+                    Knitout_Difference_Block_Tag.replace, block_1, block_2, block_1[0].line_number, block_1[-1].line_number, block_2[0].line_number, block_2[-1].line_number
+                )
+                if block_diff.can_be_rearranged() and (block_diff.is_transfer_only_block() or block_diff.is_equivalent_all_needle()):
                     diffs.append(block_diff)
                     continue  # add this instead of the original diffs.
             diffs.extend(block_diffs)
         if len(self._operations1_blocks) != len(self._operations2_blocks):
             remaining_ops_1 = []
-            for b in self._operations1_blocks[len(self._operations2_blocks):]:
+            for b in self._operations1_blocks[len(self._operations2_blocks) :]:
                 remaining_ops_1.extend(b)
             remaining_ops_2 = []
-            for b in self._operations2_blocks[len(self._operations2_blocks):]:
+            for b in self._operations2_blocks[len(self._operations2_blocks) :]:
                 remaining_ops_2.extend(b)
             if len(remaining_ops_1) > 0:
-                diffs.append(Knitout_Difference_Block(Knitout_Difference_Block_Tag.insert, remaining_ops_1, remaining_ops_2,
-                                                      remaining_ops_1[0].line_number, remaining_ops_1[-1].line_number, self._lines2[-1].line_number, self._lines2[-1].line_number))
+                diffs.append(
+                    Knitout_Difference_Block(
+                        Knitout_Difference_Block_Tag.insert,
+                        remaining_ops_1,
+                        remaining_ops_2,
+                        remaining_ops_1[0].line_number,
+                        remaining_ops_1[-1].line_number,
+                        self._lines2[-1].line_number,
+                        self._lines2[-1].line_number,
+                    )
+                )
             if len(remaining_ops_2) > 0:
-                diffs.append(Knitout_Difference_Block(Knitout_Difference_Block_Tag.delete, remaining_ops_1, remaining_ops_2,
-                                                      self._lines1[-1].line_number, self._lines1[-1].line_number, remaining_ops_2[0].line_number, remaining_ops_2[-1].line_number))
+                diffs.append(
+                    Knitout_Difference_Block(
+                        Knitout_Difference_Block_Tag.delete,
+                        remaining_ops_1,
+                        remaining_ops_2,
+                        self._lines1[-1].line_number,
+                        self._lines1[-1].line_number,
+                        remaining_ops_2[0].line_number,
+                        remaining_ops_2[-1].line_number,
+                    )
+                )
         return diffs
 
     @staticmethod
@@ -831,12 +838,9 @@ class KnitoutDiffer:
     #     return '\n'.join(diff)
 
 
-def diff_knitout_files(file1_path: str, file2_path: str,
-                       ignore_comments: bool = True,
-                       ignore_whitespace: bool = True,
-                       ignore_version: bool = True,
-                       verbose: bool = False,
-                       simple_report: bool = False) -> Knitout_Diff_Result:
+def diff_knitout_files(
+    file1_path: str, file2_path: str, ignore_comments: bool = True, ignore_whitespace: bool = True, ignore_version: bool = True, verbose: bool = False, simple_report: bool = False
+) -> Knitout_Diff_Result:
     """
     Convenience function to diff two knitout files.
 

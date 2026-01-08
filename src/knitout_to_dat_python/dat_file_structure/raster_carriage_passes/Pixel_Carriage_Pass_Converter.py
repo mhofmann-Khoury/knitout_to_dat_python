@@ -3,44 +3,23 @@
 This module provides functionality to convert pixel data from DAT files back into carriage pass objects and knitout instructions.
 It serves as the inverse operation of the raster generation process, allowing DAT file data to be interpreted and converted back into knitting machine instructions.
 """
+
+from typing import cast
+
 from knitout_interpreter.knitout_execution_structures.Carriage_Pass import Carriage_Pass
-from knitout_interpreter.knitout_operations.carrier_instructions import (
-    Hook_Instruction,
-    Inhook_Instruction,
-    Outhook_Instruction,
-    Releasehook_Instruction,
-)
+from knitout_interpreter.knitout_operations.carrier_instructions import Hook_Instruction, Inhook_Instruction, Outhook_Instruction, Releasehook_Instruction
 from knitout_interpreter.knitout_operations.kick_instruction import Kick_Instruction
-from knitout_interpreter.knitout_operations.knitout_instruction import (
-    Knitout_Instruction,
-)
-from knitout_interpreter.knitout_operations.needle_instructions import (
-    Drop_Instruction,
-    Needle_Instruction,
-    Split_Instruction,
-    Xfer_Instruction,
-)
+from knitout_interpreter.knitout_operations.knitout_instruction import Knitout_Instruction
+from knitout_interpreter.knitout_operations.needle_instructions import Drop_Instruction, Knit_Instruction, Miss_Instruction, Needle_Instruction, Split_Instruction, Tuck_Instruction, Xfer_Instruction
 from knitout_interpreter.knitout_operations.Pause_Instruction import Pause_Instruction
 from knitout_interpreter.knitout_operations.Rack_Instruction import Rack_Instruction
-from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import (
-    Carriage_Pass_Direction,
-)
+from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import Carriage_Pass_Direction
 from virtual_knitting_machine.machine_components.needles.Needle import Needle
-from virtual_knitting_machine.machine_components.yarn_management.Yarn_Carrier_Set import (
-    Yarn_Carrier_Set,
-)
+from virtual_knitting_machine.machine_components.yarn_management.Yarn_Carrier_Set import Yarn_Carrier_Set
 
-from knitout_to_dat_python.dat_file_structure.dat_codes.dat_file_color_codes import (
-    OPTION_LINE_COUNT,
-    STOPPING_MARK,
-)
-from knitout_to_dat_python.dat_file_structure.dat_codes.operation_colors import (
-    Operation_Color,
-)
-from knitout_to_dat_python.dat_file_structure.dat_codes.option_lines import (
-    Left_Option_Lines,
-    Right_Option_Lines,
-)
+from knitout_to_dat_python.dat_file_structure.dat_codes.dat_file_color_codes import OPTION_LINE_COUNT, STOPPING_MARK
+from knitout_to_dat_python.dat_file_structure.dat_codes.operation_colors import Operation_Color
+from knitout_to_dat_python.dat_file_structure.dat_codes.option_lines import Left_Option_Lines, Right_Option_Lines
 from knitout_to_dat_python.dat_file_structure.dat_codes.option_value_colors import (
     Amiss_Split_Hook_Color,
     Carriage_Pass_Direction_Color,
@@ -48,9 +27,6 @@ from knitout_to_dat_python.dat_file_structure.dat_codes.option_value_colors impo
     Pause_Color,
     Rack_Direction_Color,
     pixel_to_carriers,
-)
-from knitout_to_dat_python.kickback_injection.carriage_pass_with_kick import (
-    Carriage_Pass_with_Kick,
 )
 
 
@@ -160,7 +136,7 @@ class Pixel_Carriage_Pass_Converter:
         """
         options_before_direction = OPTION_LINE_COUNT - 1
         option_area_width = 2 * options_before_direction
-        for option_value, option in zip(self.pixels[0:option_area_width:2], self.pixels[1:option_area_width:2]):
+        for option_value, option in zip(self.pixels[0:option_area_width:2], self.pixels[1:option_area_width:2], strict=False):
             try:
                 option_enum = Left_Option_Lines(option)
                 self.left_option_line_settings[option_enum] = option_value
@@ -178,7 +154,7 @@ class Pixel_Carriage_Pass_Converter:
         """
         options_before_direction = OPTION_LINE_COUNT - 1
         option_area_width = -2 * options_before_direction
-        for option, option_value in zip(self.pixels[option_area_width::2], self.pixels[option_area_width + 1::2]):
+        for option, option_value in zip(self.pixels[option_area_width::2], self.pixels[option_area_width + 1 :: 2], strict=False):
             try:
                 self.right_option_line_settings[Right_Option_Lines(option)] = option_value
             except ValueError as e:  # Option  is not a known option_line value.
@@ -197,7 +173,7 @@ class Pixel_Carriage_Pass_Converter:
             buffer (int, optional): Buffer space around the pattern. Defaults to 4.
         """
         # Trim pixels of the option line boundaries, the left and right buffer, and a possible index of the right stop mark at the maximum width (i.e., -1)
-        pattern = self.pixels[(2 * OPTION_LINE_COUNT) + buffer: (-2 * OPTION_LINE_COUNT) - buffer - 1]
+        pattern = self.pixels[(2 * OPTION_LINE_COUNT) + buffer : (-2 * OPTION_LINE_COUNT) - buffer - 1]
         found_left_stop = pattern[0] == STOPPING_MARK
         pattern = pattern[1:]
         for slot, pixel in enumerate(pattern):
@@ -329,7 +305,7 @@ class Pixel_Carriage_Pass_Converter:
                 * If split operations are attempted without proper split option line setting.
         """
         if comment is None:
-            comment = ''
+            comment = ""
 
         def _rack_aligned_needle(n: Needle) -> Needle:
             """Find the needle aligned to the given needle at current racking.
@@ -354,34 +330,38 @@ class Pixel_Carriage_Pass_Converter:
             else:  # aligned position is on the front bed.
                 return Needle(is_front=True, position=n.position + self.rack)
 
-        def _get_single_needle_instruction(instruction_type: type, n: Needle) -> Needle_Instruction:
+        def _get_single_needle_instruction(instruction_type: type[Knit_Instruction | Tuck_Instruction], n: Needle) -> Knit_Instruction | Tuck_Instruction | Miss_Instruction:
             """Create a needle instruction for a given type and needle.
 
             Args:
-                instruction_type (type): The type of instruction to instantiate.
+                instruction_type (type[Knit_Instruction | Tuck_Instruction | Miss_Instruction]): The type of instruction to instantiate.
                 n (Needle): The needle to instantiate the needle at.
 
             Returns:
-                Needle_Instruction: A needle instruction based on the carriage pass values, instruction type, and given needle.
+                Knit_Instruction | Tuck_Instruction | Miss_Instruction: A needle instruction based on the carriage pass values, instruction type, and given needle.
             """
+            assert self.direction is not None
+            assert self.carrier_set is not None
             return instruction_type(n, self.direction, self.carrier_set, comment)
 
         operation_color = self.slot_colors[slot]
         first_operation, second_operation = operation_color.operation_types
         if second_operation is not None:
             assert self.is_all_needle_rack, f"Got all-needle operation color {operation_color} but not set for all needle rack"
-            assert self.direction is not None, f"Cannot do all-needle operations without a specified direction."
+            assert self.direction is not None, "Cannot do all-needle operations without a specified direction."
             front_needle = Needle(is_front=True, position=slot)
             back_needle = _rack_aligned_needle(front_needle)
             if self.carrier_set is None:  # Convert to Drop operations
                 return [Drop_Instruction(front_needle, comment), Drop_Instruction(back_needle, comment)]
             else:
-                return [_get_single_needle_instruction(first_operation, front_needle),
-                        _get_single_needle_instruction(second_operation, back_needle)]
+                return [
+                    _get_single_needle_instruction(cast(type[Knit_Instruction | Tuck_Instruction], first_operation), front_needle),
+                    _get_single_needle_instruction(second_operation, back_needle),
+                ]
         elif first_operation is Kick_Instruction:
+            assert self.direction is not None
             return [Kick_Instruction(slot, self.direction, self.carrier_set, comment)]
-        elif first_operation == Xfer_Instruction or first_operation == Split_Instruction:  # 2 needle operations, need to check racking
-
+        elif first_operation in (Xfer_Instruction, Split_Instruction):  # 2 needle operations, need to check racking
             if operation_color.is_front:  # split or xfer from front to back
                 needle = Needle(is_front=True, position=slot)
                 needle_2 = _rack_aligned_needle(needle)
@@ -392,17 +372,19 @@ class Pixel_Carriage_Pass_Converter:
             if first_operation is Xfer_Instruction:
                 return [Xfer_Instruction(needle, needle_2, comment)]
             else:  # Split operation
-                assert self.left_option_line_settings[Left_Option_Lines.AMiss_Split_Flag] == Amiss_Split_Hook_Color.Split_Hook.value, f"Can't split without split option line set."
+                assert self.left_option_line_settings[Left_Option_Lines.AMiss_Split_Flag] == Amiss_Split_Hook_Color.Split_Hook.value, "Can't split without split option line set."
+                assert self.direction is not None
+                assert self.carrier_set is not None
                 return [Split_Instruction(needle, self.direction, needle_2, self.carrier_set, comment)]
         elif self.carrier_set is None:  # Drop Operation
             if operation_color.is_front:
                 return [Drop_Instruction(Needle(is_front=True, position=slot), comment)]
             else:
-                return [Drop_Instruction(Needle(is_front=False, position=slot-self.rack), comment)]
+                return [Drop_Instruction(Needle(is_front=False, position=slot - self.rack), comment)]
         elif operation_color.is_front:  # single operation with single needle
-            return [_get_single_needle_instruction(first_operation, Needle(is_front=True, position=slot))]
+            return [_get_single_needle_instruction(cast(type[Knit_Instruction | Tuck_Instruction], first_operation), Needle(is_front=True, position=slot))]
         else:
-            return [_get_single_needle_instruction(first_operation, Needle(is_front=False, position=slot-self.rack))]
+            return [_get_single_needle_instruction(cast(type[Knit_Instruction | Tuck_Instruction], first_operation), Needle(is_front=False, position=slot - self.rack))]
 
     @property
     def has_prior_pause(self) -> bool:
@@ -436,10 +418,7 @@ class Pixel_Carriage_Pass_Converter:
             AssertionError: If an instruction cannot be added to the carriage pass.
         """
         direction = self.direction
-        if direction is None or direction is Carriage_Pass_Direction.Rightward:
-            slots_in_operation_order: list[int] = [s for s in sorted(self.slot_colors.keys())]
-        else:  # leftward direction:
-            slots_in_operation_order: list[int] = [s for s in sorted(self.slot_colors.keys(), reverse=True)]
+        slots_in_operation_order: list[int] = sorted(self.slot_colors.keys()) if direction is None or direction is Carriage_Pass_Direction.Rightward else sorted(self.slot_colors.keys(), reverse=True)
         instructions_in_order = []
         for slot in slots_in_operation_order:
             slot_instructions = self.get_instructions_of_slot(slot)
@@ -449,11 +428,9 @@ class Pixel_Carriage_Pass_Converter:
         else:
             carriage_pass = Carriage_Pass(instructions_in_order[0], self.rack, all_needle_rack=False)
         for instruction in instructions_in_order[1:]:
-            if isinstance(instruction, Kick_Instruction) and not isinstance(carriage_pass, Carriage_Pass_with_Kick):  # convert to Kick carriage pass
-                carriage_pass = Carriage_Pass_with_Kick(carriage_pass, kicks=[instruction])
-            else:
-                added = carriage_pass.add_instruction(instruction, rack=self.rack, all_needle_rack=self.is_all_needle_rack)
-                assert added, f"Couldn't add {instruction} to {carriage_pass}"
+            added = carriage_pass.add_instruction(instruction, rack=self.rack, all_needle_rack=self.is_all_needle_rack)
+            if not added:
+                raise ValueError(f"Couldn't add {instruction} to {carriage_pass}")
         return carriage_pass
 
     def get_hook_instruction(self, release_carrier: int | None = None) -> None | Hook_Instruction:
@@ -474,8 +451,10 @@ class Pixel_Carriage_Pass_Converter:
             assert release_carrier is not None
             return Releasehook_Instruction(release_carrier)
         elif self.hook_operation is Hook_Operation_Color.In_Hook_Operation:
+            assert self.holding_hook_carrier is not None
             return Inhook_Instruction(self.holding_hook_carrier)
         else:
+            assert self.holding_hook_carrier is not None
             return Outhook_Instruction(self.holding_hook_carrier)
 
     def get_rack_instruction(self) -> Rack_Instruction:
@@ -501,8 +480,8 @@ class Pixel_Carriage_Pass_Converter:
             list[Knitout_Instruction | Carriage_Pass | None]: A list of knitout instructions and the carriage pass used to execute this portion of the knitting process.
         """
         if self.hook_operation is Hook_Operation_Color.In_Hook_Operation or self.hook_operation is Hook_Operation_Color.ReleaseHook_Operation:
-            return [self.get_rack_instruction(), self.get_prior_pause(), self.get_hook_instruction(release_carrier),  self.get_carriage_pass()]
+            return [self.get_rack_instruction(), self.get_prior_pause(), self.get_hook_instruction(release_carrier), self.get_carriage_pass()]
         elif self.hook_operation is Hook_Operation_Color.Out_Hook_Operation:
-            return [self.get_rack_instruction(), self.get_carriage_pass(),  self.get_prior_pause(), self.get_hook_instruction()]
+            return [self.get_rack_instruction(), self.get_carriage_pass(), self.get_prior_pause(), self.get_hook_instruction()]
         else:
             return [self.get_rack_instruction(), self.get_prior_pause(), self.get_carriage_pass()]

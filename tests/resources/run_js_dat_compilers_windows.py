@@ -1,4 +1,5 @@
 """Isolated code for running DAT compiler on windows"""
+
 from nodejs import node
 
 

@@ -3,27 +3,19 @@
 This module provides functionality to convert Shima Seiki DAT files back into knitout instructions.
 It handles the complete reverse conversion pipeline including DAT file reading, pixel decoding, instruction reconstruction, and knitout file generation.
 """
+
 import struct
 
 from knitout_interpreter.knitout_execution_structures.Carriage_Pass import Carriage_Pass
-from knitout_interpreter.knitout_operations.carrier_instructions import (
-    Inhook_Instruction,
-    Releasehook_Instruction,
-)
+from knitout_interpreter.knitout_operations.carrier_instructions import Inhook_Instruction, Releasehook_Instruction
 from knitout_interpreter.knitout_operations.Header_Line import get_machine_header
 from knitout_interpreter.knitout_operations.kick_instruction import Kick_Instruction
-from knitout_interpreter.knitout_operations.knitout_instruction import (
-    Knitout_Instruction,
-)
+from knitout_interpreter.knitout_operations.knitout_instruction import Knitout_Instruction
 from knitout_interpreter.knitout_operations.Rack_Instruction import Rack_Instruction
 from virtual_knitting_machine.Knitting_Machine import Knitting_Machine
 
-from knitout_to_dat_python.dat_file_structure.dat_codes.dat_file_color_codes import (
-    WIDTH_SPECIFIER,
-)
-from knitout_to_dat_python.dat_file_structure.raster_carriage_passes.Pixel_Carriage_Pass_Converter import (
-    Pixel_Carriage_Pass_Converter,
-)
+from knitout_to_dat_python.dat_file_structure.dat_codes.dat_file_color_codes import WIDTH_SPECIFIER
+from knitout_to_dat_python.dat_file_structure.raster_carriage_passes.Pixel_Carriage_Pass_Converter import Pixel_Carriage_Pass_Converter
 
 
 class Dat_to_Knitout_Converter:
@@ -102,7 +94,7 @@ class Dat_to_Knitout_Converter:
                 self._process.append(e)
                 return False, None
 
-        for i, raster in enumerate(self._rasters):
+        for raster in self._rasters:
             raster_process = raster.get_execution_process(carrier_on_gripper)
             for execution in raster_process:
                 has_update, updated_value = _add_to_process(execution)
@@ -140,7 +132,7 @@ class Dat_to_Knitout_Converter:
         Args:
             end_length (int, optional): The length of the expected end sequence. Defaults to 3.
         """
-        self._pixels = self._pixels[:-1 * end_length]
+        self._pixels = self._pixels[: -1 * end_length]
 
     def _set_expected_pattern_width(self, pattern_buffer: int = 4) -> None:
         """Determine the expected pattern width by searching for the top pattern specifier row.
@@ -150,12 +142,13 @@ class Dat_to_Knitout_Converter:
         Args:
             pattern_buffer (int, optional): Buffer space around the pattern. Defaults to 4.
         """
-        i = 0
+        end_row = len(self._pixels)
         for i, row in enumerate(reversed(self._pixels)):
             if not any(p != WIDTH_SPECIFIER for p in row):  # True if the row only contains the color for a width specifier.
                 self._expected_pattern_width = len(row) - (pattern_buffer * 2) - 2  # stopping marks and pattern buffer
+                end_row = i
                 break
-        self._pixels = self._pixels[:(-1 * i) - 1]
+        self._pixels = self._pixels[: (-1 * end_row) - 1]
 
     def _trim_pixels_to_pattern(self) -> None:
         """Trim the pixel set of empty buffer rows and edges.
@@ -186,7 +179,7 @@ class Dat_to_Knitout_Converter:
                     if x == 20:  # First Option on Right side (0 value before had meaning)
                         i -= 1
                     break
-            return row[:-1 * i]
+            return row[: -1 * i]
 
         self._pixels = [_trim_row(row) for row in self._pixels]
 
@@ -199,13 +192,13 @@ class Dat_to_Knitout_Converter:
             ValueError: If the DAT file has invalid magic numbers or format issues.
             AssertionError: If the number of decoded rows doesn't match the expected height from the header.
         """
-        with open(self._dat_filename, 'rb') as f:
+        with open(self._dat_filename, "rb") as f:
             # Read header (0x200 bytes)
             header_data = f.read(0x200)
 
             # Parse header using little-endian format
-            x_min, y_min, x_max, y_max, magic1 = struct.unpack('<HHHHH', header_data[:10])
-            magic2 = struct.unpack('<H', header_data[16:18])[0]
+            x_min, y_min, x_max, y_max, magic1 = struct.unpack("<HHHHH", header_data[:10])
+            magic2 = struct.unpack("<H", header_data[16:18])[0]
 
             # Validate magic numbers
             if magic1 != 1000 or magic2 != 1000:
@@ -265,6 +258,6 @@ class Dat_to_Knitout_Converter:
             knitout_filename (str): The name of the knitout file to write.
         """
         header_lines = get_machine_header(Knitting_Machine())
-        with open(knitout_filename, 'w') as f:
+        with open(knitout_filename, "w") as f:
             f.writelines([str(h) for h in header_lines])
             f.writelines([str(e) for e in self._executed_instructions])

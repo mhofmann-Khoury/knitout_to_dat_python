@@ -1,12 +1,9 @@
 """Test cases for the Dat_to_Knitout_Converter class."""
+
 from unittest import TestCase
 
 from knitout_to_dat_python.knitout_to_dat import dat_to_knitout, knitout_to_dat
-from tests.resources.knitout_diff import (
-    Knitout_Diff_Result,
-    KnitoutDiffer,
-    diff_knitout_files,
-)
+from tests.resources.knitout_diff import Knitout_Diff_Result, KnitoutDiffer, diff_knitout_files
 from tests.resources.load_ks_resources import load_test_knitscript_to_knitout_to_old_dat
 
 
@@ -76,72 +73,64 @@ class TestDat_to_Knitout_Converter(TestCase):
         return original_to_py_result, clean_to_py_result, original_to_js_result, py_to_js_result
 
     def test_stst(self):
-        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout('stst.ks', 'stst',
-                                                               c=1, pattern_width=10, pattern_height=10)
+        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout("stst.ks", "stst", c=1, pattern_width=10, pattern_height=10)
 
         assert o_py.are_functionally_equivalent, "Original and Python code differ"
         assert o_js.are_functionally_equivalent, "Original and Javascript code differ"
         assert py_js.are_functionally_equivalent, "Javascript and Python code differ"
 
     def test_rib(self):
-        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout('rib.ks', 'rib',
-                                                               c=1, pattern_width=10, pattern_height=10)
+        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout("rib.ks", "rib", c=1, pattern_width=10, pattern_height=10)
 
         assert o_py.are_functionally_equivalent, "Original and Python code differ"
         assert o_js.are_functionally_equivalent, "Original and Javascript code differ"
         assert py_js.are_functionally_equivalent, "Javascript and Python code differ"
 
     def test_seed(self):
-        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout('seed.ks', 'seed',
-                                                               c=1, pattern_width=10, pattern_height=10)
+        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout("seed.ks", "seed", c=1, pattern_width=10, pattern_height=10)
 
         assert o_py.are_functionally_equivalent, "Original and Python code differ"
         assert o_js.are_functionally_equivalent, "Original and Javascript code differ"
         assert py_js.are_functionally_equivalent, "Javascript and Python code differ"
 
     def test_tube(self):
-        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout('tube.ks', 'tube',
-                                                               c=1, pattern_width=10, pattern_height=10)
+        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout("tube.ks", "tube", c=1, pattern_width=10, pattern_height=10)
 
         assert o_py.are_functionally_equivalent, "Original and Python code differ"
         assert o_js.are_functionally_equivalent, "Original and Javascript code differ"
         assert py_js.are_functionally_equivalent, "Javascript and Python code differ"
 
     def test_all_needle_jacquard(self):
-        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout('all_needle.ks', 'all_needle',
-                                                               c=1, pattern_width=10, pattern_height=10)
+        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout("all_needle.ks", "all_needle", c=1, pattern_width=10, pattern_height=10)
 
         assert o_py.are_functionally_equivalent, "Original and Python code differ"
         assert o_js.are_functionally_equivalent, "Original and Javascript code differ"
         assert len(py_js.significant_diffs) <= 1, "Javascript and Python code only differ by final rack line"
 
     def test_short_rows(self):
-        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout('short_rows.ks', 'shorts',
-                                                               c=1, pattern_width=10, pattern_height=10, base=2, shorts=2)
+        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout("short_rows.ks", "shorts", c=1, pattern_width=10, pattern_height=10, base=2, shorts=2)
 
         assert o_py.are_functionally_equivalent, "Original and Python code differ"
         assert o_js.are_functionally_equivalent, "Original and Javascript code differ"
         assert py_js.are_functionally_equivalent, "Javascript and Python code differ"
 
     def test_jacquard_stripe(self):
-        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout('jacquard_stripes.ks', 'jacquard_stripes',
-                                                               white=1, black=2, pattern_width=10, pattern_height=10)
+        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout("jacquard_stripes.ks", "jacquard_stripes", white=1, black=2, pattern_width=10, pattern_height=10)
 
         assert o_py.are_functionally_equivalent, "Original and Python code differ"
         assert o_js.are_functionally_equivalent, "Original and Javascript code differ"
         assert py_js.are_functionally_equivalent, "Javascript and Python code differ"
 
     def test_lace(self):
-        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout('lace.ks', 'lace',
-                                                               c=1, pattern_width=10, pattern_height=10)
+        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout("lace.ks", "lace", c=1, pattern_width=10, pattern_height=10)
         assert o_py.are_functionally_equivalent, "Original and Python code differ"
         assert o_js.are_functionally_equivalent, "Original and Javascript code differ"
         assert py_js.are_equivalent, "Javascript and Python code differ"
 
     def test_xfer_rackings(self):
-        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout('xfer_rackings.ks', 'xfer_rackings')
+        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout("xfer_rackings.ks", "xfer_rackings")
         print(f"# Compare Shift Original xfer_rackings.k with Python->Dat->Knitout Output")
-        differ = KnitoutDiffer('xfer_rackings.k', 'xfer_rackings_from_py.k', shift_file2=1)
+        differ = KnitoutDiffer("xfer_rackings.k", "xfer_rackings_from_py.k", shift_file2=1)
         original_to_py_result = differ.get_diff_results()
         if original_to_py_result.are_functionally_equivalent:
             original_to_py_result.simple_report()
@@ -149,7 +138,7 @@ class TestDat_to_Knitout_Converter(TestCase):
             original_to_py_result.verbose_report()
 
         print(f"\n# Compare Original xfer_rackings.k with JS->Dat->Knitout Output")
-        differ = KnitoutDiffer('xfer_rackings.k', 'xfer_rackings_js.k', shift_file2=1)
+        differ = KnitoutDiffer("xfer_rackings.k", "xfer_rackings_js.k", shift_file2=1)
         original_to_js_result = differ.get_diff_results()
         if original_to_js_result.are_functionally_equivalent:
             original_to_js_result.simple_report()
@@ -157,80 +146,81 @@ class TestDat_to_Knitout_Converter(TestCase):
             original_to_js_result.verbose_report()
         assert py_js.are_equivalent, "Javascript and Python code differ"
 
-    def test_cable(self):
-        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout('cable.ks', 'cable',
-                                                               c=1, pattern_width=12, pattern_height=10)
-
-        assert o_py.are_functionally_equivalent, "Original and Python code differ"
-        assert o_js.are_functionally_equivalent, "Original and Javascript code differ"
-        assert py_js.are_functionally_equivalent, "Javascript and Python code differ"
-
     def test_intarsia(self):
-        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout('intarsia_float_block.ks', 'intarsia',
-                                                               white=1, black=2,
-                                                               border=4, block_width=4, block_height=6)
+        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout("intarsia_float_block.ks", "intarsia", white=1, black=2, border=2, block_width=4, block_height=4)
+        print(f"# Compare Shift Original intarsia.k with Python->Dat->Knitout Output")
+        differ = KnitoutDiffer("intarsia.k", "intarsia_from_py.k", shift_file1=1)
+        original_to_py_result = differ.get_diff_results()
+        if original_to_py_result.are_functionally_equivalent:
+            original_to_py_result.simple_report()
+        else:
+            original_to_py_result.verbose_report()
+        assert original_to_py_result.are_equivalent, "Original and Python code differ"
+        assert o_js.are_functionally_equivalent, "Original and Javascript code differ"
+
+        print(f"# Compare Shift Original intarsia.k with Python->Dat->Knitout Output")
+        differ = KnitoutDiffer("intarsia_js.k", "intarsia_from_py.k", shift_file1=1)
+        js_to_py_result = differ.get_diff_results()
+        if js_to_py_result.are_functionally_equivalent:
+            js_to_py_result.simple_report()
+        else:
+            js_to_py_result.verbose_report()
+        assert js_to_py_result.are_functionally_equivalent, "Javascript and Python code differ"
+
+    def test_cable(self):
+        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout("cable.ks", "cable", c=1, pattern_width=12, pattern_height=10)
 
         assert o_py.are_functionally_equivalent, "Original and Python code differ"
         assert o_js.are_functionally_equivalent, "Original and Javascript code differ"
         assert py_js.are_functionally_equivalent, "Javascript and Python code differ"
 
     def test_plating(self):
-        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout('plating.ks', 'plating',
-                                                               white=1, black=2,
-                                                               stripe_size=4, stripes=4,
-                                                               pattern_height=10)
+        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout("plating.ks", "plating", white=1, black=2, stripe_size=4, stripes=4, pattern_height=10)
 
         assert o_py.are_functionally_equivalent, "Original and Python code differ"
         assert o_js.are_functionally_equivalent, "Original and Javascript code differ"
         assert py_js.are_functionally_equivalent, "Javascript and Python code differ"
 
     def test_shift(self):
-        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout('shift.ks', 'shift',
-                                                               c=1, pattern_width=10, pattern_height=10,
-                                                               shift=2)
+        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout("shift.ks", "shift", c=1, pattern_width=10, pattern_height=10, shift=2)
 
         assert o_py.are_functionally_equivalent, "Original and Python code differ"
         assert o_js.are_functionally_equivalent, "Original and Javascript code differ"
         assert py_js.are_functionally_equivalent, "Javascript and Python code differ"
 
     def test_half_gauge(self):
-        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout('half_gauge.ks', 'half_gauge',
-                                                               c=1, pattern_width=10, pattern_height=10)
+        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout("half_gauge.ks", "half_gauge", c=1, pattern_width=10, pattern_height=10)
 
         assert o_py.are_functionally_equivalent, "Original and Python code differ"
         assert o_js.are_functionally_equivalent, "Original and Javascript code differ"
         assert py_js.are_functionally_equivalent, "Javascript and Python code differ"
 
     def test_gauged_sheets(self):
-        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout('gauged_sheets.ks', 'gauged_sheets',
-                                                               c=1, pattern_width=10, pattern_height=10)
+        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout("gauged_sheets.ks", "gauged_sheets", c=1, pattern_width=10, pattern_height=10)
 
         assert o_py.are_functionally_equivalent, "Original and Python code differ"
         assert o_js.are_functionally_equivalent, "Original and Javascript code differ"
         assert py_js.are_functionally_equivalent, "Javascript and Python code differ"
 
     def test_splits(self):
-        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout('splits.ks', 'splits',
-                                                               c=1, pattern_width=10, pattern_height=10)
+        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout("splits.ks", "splits", c=1, pattern_width=10, pattern_height=10)
 
         assert o_py.are_functionally_equivalent, "Original and Python code differ"
         assert o_js.are_functionally_equivalent, "Original and Javascript code differ"
         assert py_js.are_functionally_equivalent, "Javascript and Python code differ"
 
     def test_pauses(self):
-        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout('pauses.ks', 'pauses',
-                                                               c=1, pattern_width=10, pattern_height=10)
+        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout("pauses.ks", "pauses", c=1, pattern_width=4, pattern_height=4)
 
         assert o_py.are_functionally_equivalent, "Original and Python code differ"
         assert o_js.are_functionally_equivalent, "Original and Javascript code differ"
         assert py_js.are_functionally_equivalent, "Javascript and Python code differ"
 
     def test_all_needle_racked(self):
-        test_name = 'all_needle_racked'
-        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout('all_needle_racked.ks', '%s' % test_name,
-                                                               c=1, pattern_width=10, pattern_height=10)
+        test_name = "all_needle_racked"
+        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout("all_needle_racked.ks", "%s" % test_name, c=1, pattern_width=10, pattern_height=10)
         print(f"# Compare Shift Original xfer_rackings.k with Python->Dat->Knitout Output")
-        differ = KnitoutDiffer('all_needle_racked.k', 'all_needle_racked_from_py.k', shift_file2=1)
+        differ = KnitoutDiffer("all_needle_racked.k", "all_needle_racked_from_py.k", shift_file2=1)
         original_to_py_result = differ.get_diff_results()
         if original_to_py_result.are_functionally_equivalent:
             original_to_py_result.simple_report()
@@ -238,7 +228,7 @@ class TestDat_to_Knitout_Converter(TestCase):
             original_to_py_result.verbose_report()
 
         print(f"\n# Compare Original xfer_rackings.k with JS->Dat->Knitout Output")
-        differ = KnitoutDiffer('all_needle_racked.k', 'all_needle_racked_js.k', shift_file2=1)
+        differ = KnitoutDiffer("all_needle_racked.k", "all_needle_racked_js.k", shift_file2=1)
         original_to_js_result = differ.get_diff_results()
         if original_to_js_result.are_functionally_equivalent:
             original_to_js_result.simple_report()
@@ -247,14 +237,14 @@ class TestDat_to_Knitout_Converter(TestCase):
         assert py_js.are_equivalent, "Javascript and Python code differ"
 
     def test_weird_carriage_moves(self):
-        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout('weird_carriage_moves.ks', 'carriage_moves')
+        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout("weird_carriage_moves.ks", "carriage_moves")
 
         assert o_py.are_functionally_equivalent, "Original and Python code differ"
         assert o_js.are_functionally_equivalent, "Original and Javascript code differ"
         assert py_js.are_functionally_equivalent, "Javascript and Python code differ"
 
     def test_plate_row(self):
-        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout('plate_row.ks', 'plate_row')
+        o_py, c_py, o_js, py_js = self.compare_dats_by_knitout("plate_row.ks", "plate_row")
 
         assert o_py.are_functionally_equivalent, "Original and Python code differ"
         assert o_js.are_functionally_equivalent, "Original and Javascript code differ"

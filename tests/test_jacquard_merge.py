@@ -1,4 +1,5 @@
 """Test cases for the Dat_to_Knitout_Converter class."""
+
 from unittest import TestCase
 
 from knitout_to_dat_python.knitout_to_dat import dat_to_knitout, knitout_to_dat
@@ -63,21 +64,21 @@ class TestDat_to_Knitout_Converter(TestCase):
         return original_to_py_result, original_to_js_result, py_to_js_result
 
     def test_jacquard_merge(self):
-        o_py, o_js, py_js = self.compare_dats_by_knitout('jacquard_merge.k', 'jacquard_merge')
+        o_py, o_js, py_js = self.compare_dats_by_knitout("jacquard_merge.k", "jacquard_merge")
 
         assert o_py.are_functionally_equivalent, "Original and Python code differ"
         assert o_js.are_functionally_equivalent, "Original and Javascript code differ"
         assert py_js.are_functionally_equivalent, "Javascript and Python code differ"
 
     def test_seed_jacquard(self):
-        o_py, o_js, py_js = self.compare_dats_by_knitout('seed_jacquard.k', 'seed_jacquard')
+        o_py, o_js, py_js = self.compare_dats_by_knitout("seed_jacquard.k", "seed_jacquard")
 
         assert o_py.are_functionally_equivalent, "Original and Python code differ"
         assert o_js.are_functionally_equivalent, "Original and Javascript code differ"
         assert py_js.are_functionally_equivalent, "Javascript and Python code differ"
 
     def test_jacquard_seed(self):
-        o_py, o_js, py_js = self.compare_dats_by_knitout('jacquard_seed.k', 'jacquard_seed')
+        o_py, o_js, py_js = self.compare_dats_by_knitout("jacquard_seed.k", "jacquard_seed")
 
         assert o_py.are_functionally_equivalent, "Original and Python code differ"
         assert o_js.are_functionally_equivalent, "Original and Javascript code differ"

@@ -1,4 +1,5 @@
 """Test cases for the Dat_to_Knitout_Converter class."""
+
 from unittest import TestCase
 
 from knitout_to_dat_python.knitout_to_dat import knitout_to_dat
@@ -26,61 +27,46 @@ class TestDat_to_Knitout_Converter(TestCase):
         knitout_to_dat(original_k_file, dat_file_name)
 
     def test_stst(self):
-        self.generate_dats('stst.ks', 'stst',
-                           c=3, pattern_width=60, pattern_height=60)
+        self.generate_dats("stst.ks", "stst", c=3, pattern_width=60, pattern_height=60)
 
     def test_rib(self):
-        self.generate_dats('rib.ks', 'rib',
-                           c=3, pattern_width=60, pattern_height=60)
+        self.generate_dats("rib.ks", "rib", c=3, pattern_width=60, pattern_height=60)
 
     def test_seed(self):
-        self.generate_dats('seed.ks', 'seed',
-                           c=3, pattern_width=60, pattern_height=60)
+        self.generate_dats("seed.ks", "seed", c=3, pattern_width=60, pattern_height=60)
 
     def test_tube(self):
-        self.generate_dats('tube.ks', 'tube',
-                           c=3, pattern_width=60, pattern_height=60)
+        self.generate_dats("tube.ks", "tube", c=3, pattern_width=60, pattern_height=60)
 
     def test_all_needle_jacquard(self):
-        self.generate_dats('all_needle.ks', 'all_needle',
-                           c=3, pattern_width=60, pattern_height=60)
+        self.generate_dats("all_needle.ks", "all_needle", c=3, pattern_width=60, pattern_height=60)
 
     def test_short_rows(self):
-        self.generate_dats('short_rows.ks', 'short_rows',
-                           c=3, pattern_width=60, pattern_height=60, base=6, shorts=2)
+        self.generate_dats("short_rows.ks", "short_rows", c=3, pattern_width=60, pattern_height=60, base=6, shorts=2)
 
     def test_jacquard_stripe(self):
-        self.generate_dats('jacquard_stripes.ks', 'jacquard_stripes',
-                           white=3, black=4, pattern_width=60, pattern_height=60)
+        self.generate_dats("jacquard_stripes.ks", "jacquard_stripes", white=3, black=4, pattern_width=60, pattern_height=60)
 
     def test_lace(self):
-        self.generate_dats('lace.ks', 'lace',
-                           c=3, pattern_width=60, pattern_height=60)
+        self.generate_dats("lace.ks", "lace", c=3, pattern_width=60, pattern_height=60)
 
     def test_cable(self):
-        self.generate_dats('cable.ks', 'cable',
-                           c=3, pattern_width=60, pattern_height=60)
+        self.generate_dats("cable.ks", "cable", c=3, pattern_width=60, pattern_height=60)
 
     def test_intarsia(self):
-        self.generate_dats('intarsia_float_block.ks', 'intarsia',
-                           white=3, black=4, border=10, block_width=40, block_height=40)
+        self.generate_dats("intarsia_float_block.ks", "intarsia", white=3, black=4, border=10, block_width=40, block_height=40)
 
     def test_plating(self):
-        self.generate_dats('plating.ks', 'plating',
-                           white=3, black=4, stripe_size=10, stripes=6, pattern_height=60)
+        self.generate_dats("plating.ks", "plating", white=3, black=4, stripe_size=10, stripes=6, pattern_height=60)
 
     def test_shift(self):
-        self.generate_dats('shift.ks', 'shift',
-                           c=3, pattern_width=60, pattern_height=30, shift=2)
+        self.generate_dats("shift.ks", "shift", c=3, pattern_width=60, pattern_height=30, shift=2)
 
     def test_half_gauge(self):
-        self.generate_dats('half_gauge.ks', 'half_gauge',
-                           c=3, pattern_width=60, pattern_height=60)
+        self.generate_dats("half_gauge.ks", "half_gauge", c=3, pattern_width=60, pattern_height=60)
 
     def test_splits(self):
-        self.generate_dats('splits.ks', 'splits',
-                           c=3, pattern_width=60, pattern_height=60)
+        self.generate_dats("splits.ks", "splits", c=3, pattern_width=60, pattern_height=60)
 
     def test_all_needle_racked(self):
-        self.generate_dats('all_needle_racked.ks', 'all_needle_racked',
-                           c=3, pattern_width=60, pattern_height=20)
+        self.generate_dats("all_needle_racked.ks", "all_needle_racked", c=3, pattern_width=60, pattern_height=20)

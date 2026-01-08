@@ -7,48 +7,14 @@ It prevents carrier conflicts by automatically inserting kick instructions to mo
 from knitout_interpreter.knitout_execution import Knitout_Executer
 from knitout_interpreter.knitout_execution_structures.Carriage_Pass import Carriage_Pass
 from knitout_interpreter.knitout_operations.kick_instruction import Kick_Instruction
+from knitout_interpreter.knitout_operations.knitout_instruction import Knitout_Instruction
 from knitout_interpreter.knitout_operations.Knitout_Line import Knitout_Line
-from knitout_interpreter.knitout_operations.needle_instructions import (
-    Needle_Instruction,
-)
+from knitout_interpreter.knitout_operations.needle_instructions import Needle_Instruction
 from knitout_interpreter.knitout_operations.Pause_Instruction import Pause_Instruction
 from virtual_knitting_machine.Knitting_Machine import Knitting_Machine
-from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import (
-    Carriage_Pass_Direction,
-)
-from virtual_knitting_machine.machine_components.needles.Needle import Needle
-from virtual_knitting_machine.machine_components.yarn_management.Yarn_Carrier import (
-    Yarn_Carrier,
-)
-from virtual_knitting_machine.machine_components.yarn_management.Yarn_Carrier_Set import (
-    Yarn_Carrier_Set,
-)
-
-from knitout_to_dat_python.kickback_injection.carriage_pass_with_kick import (
-    Carriage_Pass_with_Kick,
-)
-
-
-class Negative_Kick_Instruction(Kick_Instruction):
-    """A subclass of the Kick_Instruction used to undo the negative needle requirement
-    TODO: Remove this requirement from the original Kick_Instruction class.
-    """
-
-    def __init__(self, position: int, direction: str | Carriage_Pass_Direction, cs: Yarn_Carrier_Set | None = None, comment: None | str = None):
-        """Initialize a kick instruction for a specific needle position.
-
-        Args:
-            position (int): The needle position for the kickback.
-            direction: The direction of the carriage pass.
-            cs: The yarn carrier set to use. Defaults to None.
-            comment: Optional comment for the instruction. Defaults to None.
-        """
-        if isinstance(position, Needle):
-            self._position: int = position.position
-        else:
-            self._position: int = position
-        super().__init__(position=abs(position), direction=direction, cs=cs, comment=comment)
-        self._needle = Needle(is_front=True, position=self._position)  # correct the position to the negative value.
+from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import Carriage_Pass_Direction
+from virtual_knitting_machine.machine_components.yarn_management.Yarn_Carrier import Yarn_Carrier
+from virtual_knitting_machine.machine_components.yarn_management.Yarn_Carrier_Set import Yarn_Carrier_Set
 
 
 class Knitout_Executer_With_Kickbacks(Knitout_Executer):
@@ -74,14 +40,45 @@ class Knitout_Executer_With_Kickbacks(Knitout_Executer):
             instructions (list[Knitout_Line]): The list of knitout instructions to execute.
             knitting_machine (Knitting_Machine): The knitting machine to execute instructions on.
         """
-        self.process: list[Knitout_Line | Carriage_Pass] = []
-        self._kickback_process: list[Knitout_Line | Carriage_Pass] = []
+        self._kickback_process: list[Knitout_Instruction | Carriage_Pass] = []
         self.executed_instructions: list[Knitout_Line] = []
         self._kickback_executed_instructions: list[Knitout_Line] = []
         super().__init__(instructions, knitting_machine)
+        self._insert_pauses_into_process()
         self.kickback_machine: Knitting_Machine = Knitting_Machine(self.knitting_machine.machine_specification)
         self._last_carrier_movement: None | Carriage_Pass = None
         self.add_kickbacks_to_process()
+
+    def _insert_pauses_into_process(self) -> None:
+        """
+        Re-injects Pause instructions into the executed process.
+
+        Todo:
+            Reintroduce pauses to knitout executer base class.
+        """
+        updated_process: list[Knitout_Instruction | Carriage_Pass] = []
+        process_index = 0
+        next_step_in_process = self.process[process_index] if len(self.process) > process_index else None
+
+        def _next_line_number() -> int:
+            if isinstance(next_step_in_process, Knitout_Instruction):
+                return next_step_in_process.original_line_number if next_step_in_process.original_line_number is not None else -1
+            elif isinstance(next_step_in_process, Carriage_Pass):
+                return next_step_in_process.first_instruction.original_line_number if next_step_in_process.first_instruction.original_line_number is not None else -1
+            else:
+                return -1
+
+        for instruction in self.instructions:
+            if isinstance(instruction, Pause_Instruction):
+                while next_step_in_process is not None and instruction.original_line_number is not None and _next_line_number() < instruction.original_line_number:
+                    # Add to process until the pause line number is reached.
+                    updated_process.append(next_step_in_process)
+                    process_index += 1
+                    next_step_in_process = self.process[process_index] if len(self.process) > process_index else None
+                updated_process.append(instruction)
+        if next_step_in_process is not None:
+            updated_process.extend(self.process[process_index:])
+        self.process = updated_process
 
     def _get_carrier_position(self, cid: int) -> None | int:
         """Get the exact position with buffer for the given carrier.
@@ -127,7 +124,8 @@ class Knitout_Executer_With_Kickbacks(Knitout_Executer):
             return None
         return int(carrier.position)
 
-    def _carriage_pass_conflict_zone(self, carriage_pass: Carriage_Pass) -> tuple[int, int]:
+    @staticmethod
+    def _carriage_pass_conflict_zone(carriage_pass: Carriage_Pass) -> tuple[int, int]:
         """Identify the carrier-conflict zone for a carriage pass.
 
         Args:
@@ -137,15 +135,11 @@ class Knitout_Executer_With_Kickbacks(Knitout_Executer):
             tuple[int, int]: The leftmost and rightmost positions that carriers will move in this action.
         """
         leftmost_position, rightmost_position = carriage_pass.carriage_pass_range()
-        # for carrier in self.get_carriers(carriage_pass.carrier_set):  # Include movements of involved carriers to the starting position of the carriage pass.
-        #     carrier_position = self._get_carrier_position_range(carrier)
-        #     if isinstance(carrier_position, int):  # Specific position, no kickbacks
-        #         leftmost_position = min(carrier_position, leftmost_position)
-        #         rightmost_position = max(carrier_position, rightmost_position)
         return leftmost_position, rightmost_position
 
-    def _kicks_out_of_conflict_zone(self, leftmost_conflict: int, rightmost_conflict: int, exempt_carriers: set[Yarn_Carrier],
-                                    allow_leftward_movement: bool = True, allow_rightward_movement: bool = True) -> list[Kick_Instruction]:
+    def _kicks_out_of_conflict_zone(
+        self, leftmost_conflict: int, rightmost_conflict: int, exempt_carriers: set[Yarn_Carrier], allow_leftward_movement: bool = True, allow_rightward_movement: bool = True
+    ) -> list[Kick_Instruction]:
         """Generate kick instructions to move carriers out of a conflict zone.
 
         Args:
@@ -171,8 +165,8 @@ class Knitout_Executer_With_Kickbacks(Knitout_Executer):
 
         if allow_leftward_movement and allow_rightward_movement:
             conflict_split = leftmost_conflict + (rightmost_conflict - leftmost_conflict) // 2
-            leftward_carriers = set(carrier for carrier in conflict_carriers if carrier.position <= conflict_split)  # Carriers that should tend to push leftward
-            rightward_carriers = set(carrier for carrier in conflict_carriers if carrier.position > conflict_split)  # Carriers that should tend to push rightward
+            leftward_carriers = {carrier for carrier in conflict_carriers if carrier.position is not None and carrier.position <= conflict_split}  # Carriers that should tend to push leftward
+            rightward_carriers = {carrier for carrier in conflict_carriers if carrier.position is not None and carrier.position > conflict_split}  # Carriers that should tend to push rightward
         elif allow_leftward_movement:  # allow only leftward movements
             leftward_carriers = conflict_carriers
             rightward_carriers = set()
@@ -183,48 +177,60 @@ class Knitout_Executer_With_Kickbacks(Knitout_Executer):
         # associate carriers by current position for outward pushing to exterior of carriage pass
         leftward_positions_to_carriers: dict[int, set[Yarn_Carrier]] = {}
         for carrier in leftward_carriers:
+            if carrier.position is None:
+                continue
             if carrier.position not in leftward_positions_to_carriers:
                 leftward_positions_to_carriers[carrier.position] = set()
             leftward_positions_to_carriers[carrier.position].add(carrier)
         rightward_positions_to_carriers: dict[int, set[Yarn_Carrier]] = {}
         for carrier in rightward_carriers:
+            if carrier.position is None:
+                continue
             if carrier.position not in rightward_positions_to_carriers:
                 rightward_positions_to_carriers[carrier.position] = set()
             rightward_positions_to_carriers[carrier.position].add(carrier)
 
         # Set leftward kickbacks moving left most to rightmost carrier sets
         if len(leftward_positions_to_carriers) > 0:
-            kicks = self._kicks_out_of_conflict_zone(leftmost_conflict=leftmost_conflict - len(leftward_positions_to_carriers),
-                                                     rightmost_conflict=leftmost_conflict,
-                                                     exempt_carriers=exempt_carriers, allow_leftward_movement=True, allow_rightward_movement=False)
+            kicks = self._kicks_out_of_conflict_zone(
+                leftmost_conflict=leftmost_conflict - len(leftward_positions_to_carriers),
+                rightmost_conflict=leftmost_conflict,
+                exempt_carriers=exempt_carriers,
+                allow_leftward_movement=True,
+                allow_rightward_movement=False,
+            )
             kick_insert_index = len(kicks)
             for push_group, pos in enumerate(sorted(leftward_positions_to_carriers, reverse=True)):
                 carriers = leftward_positions_to_carriers[pos]
                 kick_position = leftmost_conflict - 1 - push_group
-                if kick_position < 0:
-                    kick = Negative_Kick_Instruction(kick_position, Carriage_Pass_Direction.Leftward, Yarn_Carrier_Set(list(carriers)),
-                                                     comment=f"Move out of conflict zone {leftmost_conflict} to {rightmost_conflict} of carriers {exempt_carriers}")
-                else:
-                    kick = Kick_Instruction(kick_position, Carriage_Pass_Direction.Leftward, Yarn_Carrier_Set(list(carriers)),
-                                            comment=f"Move out of conflict zone {leftmost_conflict} to {rightmost_conflict} of carriers {exempt_carriers}")
+                kick = Kick_Instruction(
+                    kick_position,
+                    Carriage_Pass_Direction.Leftward,
+                    Yarn_Carrier_Set(list(carriers)),
+                    comment=f"Move out of conflict zone {leftmost_conflict} to {rightmost_conflict} of carriers {exempt_carriers}",
+                )
                 kicks.insert(kick_insert_index, kick)  # add kick to front of kicks because we want the order to move the leftmost carriers first.
 
         # Set rightward kickbacks moving right to leftmost carrier sets
         if len(rightward_positions_to_carriers) > 0:
-            conflict_kicks = self._kicks_out_of_conflict_zone(leftmost_conflict=rightmost_conflict,
-                                                              rightmost_conflict=rightmost_conflict + len(rightward_positions_to_carriers),
-                                                              exempt_carriers=exempt_carriers, allow_leftward_movement=False, allow_rightward_movement=True)
+            conflict_kicks = self._kicks_out_of_conflict_zone(
+                leftmost_conflict=rightmost_conflict,
+                rightmost_conflict=rightmost_conflict + len(rightward_positions_to_carriers),
+                exempt_carriers=exempt_carriers,
+                allow_leftward_movement=False,
+                allow_rightward_movement=True,
+            )
             kicks.extend(conflict_kicks)
             kick_insert_index = len(kicks)
             for push_group, pos in enumerate(sorted(rightward_positions_to_carriers)):
                 carriers = rightward_positions_to_carriers[pos]
-                kick_position = rightmost_conflict + 1+ push_group
-                if kick_position < 0:
-                    kick = Negative_Kick_Instruction(kick_position, Carriage_Pass_Direction.Rightward, Yarn_Carrier_Set(list(carriers)),
-                                                     comment=f"Move out of conflict zone {leftmost_conflict} to {rightmost_conflict} of carriers {exempt_carriers}")
-                else:
-                    kick = Kick_Instruction(kick_position, Carriage_Pass_Direction.Rightward, Yarn_Carrier_Set(list(carriers)),
-                                            comment=f"Move out of conflict zone {leftmost_conflict} to {rightmost_conflict} of carriers {exempt_carriers}")
+                kick_position = rightmost_conflict + 1 + push_group
+                kick = Kick_Instruction(
+                    kick_position,
+                    Carriage_Pass_Direction.Rightward,
+                    Yarn_Carrier_Set(list(carriers)),
+                    comment=f"Move out of conflict zone {leftmost_conflict} to {rightmost_conflict} of carriers {exempt_carriers}",
+                )
                 kicks.insert(kick_insert_index, kick)  # add to front of rightmost kicks because we want the order to move the rightmost carriers first.
 
         return kicks
@@ -239,8 +245,11 @@ class Knitout_Executer_With_Kickbacks(Knitout_Executer):
         Returns:
             set[Yarn_Carrier]: The yarn carriers currently positioned within the given conflict zone.
         """
-        return set(c for c in self.kickback_machine.carrier_system.active_carriers
-                   if c not in exempt_carriers and c.position is not None and leftmost_conflict <= c.conflicting_needle_slot <= rightmost_conflict)
+        return {
+            c
+            for c in self.kickback_machine.carrier_system.active_carriers
+            if (c not in exempt_carriers and c.position is not None and c.conflicting_needle_slot is not None and leftmost_conflict <= c.conflicting_needle_slot <= rightmost_conflict)
+        }
 
     def _kickback_to_align_carriers(self, carriage_pass: Carriage_Pass) -> Kick_Instruction | None:
         """Generate kick instructions to align carriers for the next carriage pass.
@@ -255,11 +264,19 @@ class Knitout_Executer_With_Kickbacks(Knitout_Executer):
             return None
         needle_position = carriage_pass.first_instruction.needle.position
         if carriage_pass.direction is Carriage_Pass_Direction.Leftward:
-            carriers_to_kick = [c for c in carriage_pass.carrier_set.get_carriers(self.kickback_machine.carrier_system) if c.position is not None and needle_position >= c.conflicting_needle_slot]
+            carriers_to_kick = [
+                c
+                for c in carriage_pass.carrier_set.get_carriers(self.kickback_machine.carrier_system)
+                if (c.position is not None and c.conflicting_needle_slot is not None and needle_position >= c.conflicting_needle_slot)
+            ]
             if len(carriers_to_kick) > 0:
                 return Kick_Instruction(needle_position, Carriage_Pass_Direction.Rightward, Yarn_Carrier_Set(carriers_to_kick), comment="Align carriers for next pass")
         else:
-            carriers_to_kick = [c for c in carriage_pass.carrier_set.get_carriers(self.kickback_machine.carrier_system) if c.position is not None and c.conflicting_needle_slot >= needle_position]
+            carriers_to_kick = [
+                c
+                for c in carriage_pass.carrier_set.get_carriers(self.kickback_machine.carrier_system)
+                if (c.position is not None and c.conflicting_needle_slot is not None and c.conflicting_needle_slot >= needle_position)
+            ]
             if len(carriers_to_kick) > 0:
                 return Kick_Instruction(needle_position, Carriage_Pass_Direction.Leftward, Yarn_Carrier_Set(carriers_to_kick), comment="Align carriers for next pass")
 
@@ -275,50 +292,54 @@ class Knitout_Executer_With_Kickbacks(Knitout_Executer):
         if self._last_carrier_movement is None:
             return False
         last_movement_position = self._last_carrier_movement.last_needle.position
-        if ((self._last_carrier_movement.direction is Carriage_Pass_Direction.Leftward and last_movement_position <= kick.needle.position)
-                or (self._last_carrier_movement.direction is Carriage_Pass_Direction.Rightward and last_movement_position >= kick.needle.position)):
+        if (self._last_carrier_movement.direction is Carriage_Pass_Direction.Leftward and last_movement_position <= kick.needle.position) or (
+            self._last_carrier_movement.direction is Carriage_Pass_Direction.Rightward and last_movement_position >= kick.needle.position
+        ):
             return False
         if kick.carrier_set == self._last_carrier_movement.carrier_set:
             left_conflict, right_conflict = self._carriage_pass_conflict_zone(self._last_carrier_movement)
             for carrier in self.get_carriers(kick.carrier_set):  # Add the kick's movement to the range of the conflict zone
-                left_conflict = min(left_conflict, carrier.conflicting_needle_slot)
+                if carrier.conflicting_needle_slot is not None:
+                    left_conflict = min(left_conflict, carrier.conflicting_needle_slot)
                 left_conflict = min(left_conflict, kick.position)
-                right_conflict = max(right_conflict, carrier.conflicting_needle_slot)
+                if carrier.conflicting_needle_slot is not None:
+                    right_conflict = max(right_conflict, carrier.conflicting_needle_slot)
                 right_conflict = max(right_conflict, kick.position)
-            conflicting_carriers = self._carriers_in_conflict_zone(left_conflict, right_conflict,
-                                                                   exempt_carriers=self.get_carriers(kick.carrier_set))
+            conflicting_carriers = self._carriers_in_conflict_zone(left_conflict, right_conflict, exempt_carriers=self.get_carriers(kick.carrier_set))
             return len(conflicting_carriers) == 0  # No conflict with adding the carrier to the last carrier movement
         return False
 
-    def _split_kicks_to_extend_last_pass(self, kicks: list[Kick_Instruction]) -> tuple[None | Kick_Instruction, list[Kick_Instruction]]:
+    def _split_kicks_to_extend_last_pass(self, kicks: list[Kick_Instruction]) -> tuple[Kick_Instruction | None, list[Kick_Instruction]]:
         """Split kicks into those that can extend the last pass and those that cannot.
 
         Args:
             kicks (list[Kick_Instruction]): The list of kick instructions to evaluate.
 
         Returns:
-            tuple[Kick_Instruction | None, list[Kick_Instruction]]: A tuple containing:
-            * The kick that can be added to the last pass (or None)
-            * The list of remaining kicks that must be executed separately.
+            tuple[Kick_Instruction | None, list[Kick_Instruction]]:
+                A tuple containing:
+                * The kick that can be added to the last pass (or None)
+                * The list of remaining kicks that must be executed separately.
         """
         extras = []
         add_on = None
-        i = 0
+        add_on_index = 0
         for i, kick in enumerate(kicks):
             if self._can_add_kick_to_last_pass(kick):
                 add_on = kick
+                add_on_index = i
                 break
             else:
                 extras.append(kick)
         if add_on is not None:
-            extras.extend(kicks[i + 1:])
+            extras.extend(kicks[add_on_index + 1 :])
         return add_on, extras
 
-    def _add_carrier_movement(self, execution: Carriage_Pass | Knitout_Line) -> None:
+    def _add_carrier_movement(self, execution: Carriage_Pass | Knitout_Instruction) -> None:
         """Add a carrier movement operation to the process and update machine state.
 
         Args:
-            execution (Carriage_Pass | Knitout_Line): The instruction or carriage pass to add and execute.
+            execution (Carriage_Pass | Knitout_Instruction): The instruction or carriage pass to add and execute.
         """
         if isinstance(execution, Carriage_Pass):
             executed_pass = execution.execute(self.kickback_machine)
@@ -359,28 +380,39 @@ class Knitout_Executer_With_Kickbacks(Knitout_Executer):
                 return
 
     def _kick_conflicting_carriers(self, carriage_pass: Carriage_Pass) -> None:
+        """
+        Add kick operations to the executed process that moves carriers that conflict with the given carriage pass.
+
+        Args:
+            carriage_pass (Carriage_Pass): The next carriage pass which may conflict with current carrier positions.
+        """
         leftmost_conflict, rightmost_conflict = self._carriage_pass_conflict_zone(carriage_pass)
         conflict_kicks = self._kicks_out_of_conflict_zone(leftmost_conflict, rightmost_conflict, exempt_carriers=self.get_carriers(carriage_pass.carrier_set))
         add_on, kicks_before_cp = self._split_kicks_to_extend_last_pass(conflict_kicks)
         if isinstance(add_on, Kick_Instruction):  # there is a kickback that can extend the last carriage pass without causing new conflicts
             assert isinstance(self._last_carrier_movement, Carriage_Pass)
-            add_on_cp = Carriage_Pass_with_Kick(self._last_carrier_movement, [add_on])
+            self._last_carrier_movement.add_kicks([add_on])
             add_on.execute(self.kickback_machine)
-            self._update_last_carriage_pass(add_on_cp)
+            self._update_last_carriage_pass(self._last_carrier_movement)
             self._update_last_executed_instruction(add_on)
         for kick in kicks_before_cp:
             kick_cp = Carriage_Pass(kick, rack=0, all_needle_rack=False)
             self._add_carrier_movement(kick_cp)
 
     def _kick_to_align_carriers(self, carriage_pass: Carriage_Pass) -> None:
+        """
+        Add kick operations to the executed process that moves carriers to align with the given carriage pass.
+        Args:
+            carriage_pass (Carriage_Pass): The next carriage pass which may require kickbacks to align the carriers.
+        """
         alignment_kick = self._kickback_to_align_carriers(carriage_pass)
         if isinstance(alignment_kick, Kick_Instruction):
             add_on, kicks_before_cp = self._split_kicks_to_extend_last_pass([alignment_kick])
             if isinstance(add_on, Kick_Instruction):  # there is a kickback that can extend the last carriage pass without causing new conflicts
                 assert isinstance(self._last_carrier_movement, Carriage_Pass)
-                add_on_cp = Carriage_Pass_with_Kick(self._last_carrier_movement, [add_on])
+                self._last_carrier_movement.add_kicks([add_on])
                 add_on.execute(self.kickback_machine)
-                self._update_last_carriage_pass(add_on_cp)
+                self._update_last_carriage_pass(self._last_carrier_movement)
                 self._update_last_executed_instruction(add_on)
             for kick in kicks_before_cp:
                 kick_cp = Carriage_Pass(kick, rack=0, all_needle_rack=False)
@@ -393,7 +425,7 @@ class Knitout_Executer_With_Kickbacks(Knitout_Executer):
         Manages carrier state tracking, conflict detection, and kickback generation throughout the execution process.
         """
         for instruction in self.process:
-            if isinstance(instruction, Knitout_Line):
+            if isinstance(instruction, Knitout_Instruction):
                 self._add_carrier_movement(instruction)
             else:  # Carriage pass that may need kickbacks before proceeding.
                 assert isinstance(instruction, Carriage_Pass), f"Expected Carriage pass, got {instruction}"

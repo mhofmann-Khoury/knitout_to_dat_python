@@ -3,22 +3,14 @@
 This module provides the Operation_Color enumeration and utility functions for mapping knitting operations to their corresponding color codes used in DAT files.
 The color codes represent different types of needle operations including knit, tuck, miss, transfer, and split operations on front and back needle beds.
 """
+
 from __future__ import annotations
 
 from enum import Enum
 
 from knitout_interpreter.knitout_operations.kick_instruction import Kick_Instruction
-from knitout_interpreter.knitout_operations.knitout_instruction import (
-    Knitout_Instruction_Type,
-)
-from knitout_interpreter.knitout_operations.needle_instructions import (
-    Knit_Instruction,
-    Miss_Instruction,
-    Needle_Instruction,
-    Split_Instruction,
-    Tuck_Instruction,
-    Xfer_Instruction,
-)
+from knitout_interpreter.knitout_operations.knitout_instruction import Knitout_Instruction_Type
+from knitout_interpreter.knitout_operations.needle_instructions import Knit_Instruction, Miss_Instruction, Needle_Instruction, Split_Instruction, Tuck_Instruction, Xfer_Instruction
 
 
 class Operation_Color(Enum):
@@ -27,6 +19,7 @@ class Operation_Color(Enum):
     This enumeration maps knitting operations to their corresponding color codes used in DAT file generation.
     Each color code represents a specific type of needle operation that can be performed on either the front bed, back bed, or both beds simultaneously.
     """
+
     # Miss operations
     SOFT_MISS = 16
     """int: A miss that does not specify a front or back needle. Used by kick-back operations."""
@@ -79,16 +72,17 @@ class Operation_Color(Enum):
     """int: Indicates a split from the back bed needle to the aligned front bed needle."""
 
     @property
-    def operation_types(self) -> tuple[type, None | type]:
+    def operation_types(self) -> tuple[type[Needle_Instruction], None] | tuple[type[Knit_Instruction | Tuck_Instruction], type[Knit_Instruction | Tuck_Instruction]]:
         """Get the operation types associated with this color code.
 
         Returns:
-            tuple[type, None | type]: A tuple of the front and back operation types for this operation color code.
+            tuple[type[Needle_Instruction], type[Needle_Instruction] | None]:
+                A tuple of the front and back operation types for this operation color code.
                 If this is an all needle operation, the first value is the front operation and the second value is the back operation.
                 Otherwise, the first value is the operation type (regardless of position), and the second value is None.
 
         Raises:
-            AssertionError: If the operation color code is not recognized or mapped to any operation type.
+            TypeError: If the operation color code is not recognized or mapped to any operation type.
         """
         if self is Operation_Color.TUCK_FRONT or self is Operation_Color.TUCK_BACK:
             return Tuck_Instruction, None
@@ -110,7 +104,7 @@ class Operation_Color(Enum):
             return Tuck_Instruction, Knit_Instruction
         elif self is Operation_Color.KNIT_FRONT_TUCK_BACK:
             return Knit_Instruction, Tuck_Instruction
-        assert False, f"Couldn't identify operation type for {self}"
+        raise TypeError(f"Couldn't identify operation type for {self}")
 
     @property
     def is_front(self) -> bool:
@@ -148,8 +142,7 @@ class Operation_Color(Enum):
         Returns:
             bool: True if the two operations can be combined into an all needle operation, otherwise False.
         """
-        return (self.can_convert_to_all_needle and other_color.can_convert_to_all_needle and
-                ((self.is_front and other_color.is_back) or (self.is_back and other_color.is_front)))
+        return self.can_convert_to_all_needle and other_color.can_convert_to_all_needle and ((self.is_front and other_color.is_back) or (self.is_back and other_color.is_front))
 
     def get_all_needle(self, other_color: Operation_Color) -> Operation_Color | None:
         """Get the all-needle merged operation color from two operation colors.
@@ -237,12 +230,12 @@ class Operation_Color(Enum):
         elif instruction.instruction_type == Knitout_Instruction_Type.Tuck:
             return Operation_Color.TUCK_FRONT if instruction.needle.is_front else Operation_Color.TUCK_BACK
         elif instruction.instruction_type == Knitout_Instruction_Type.Miss:
-            if isinstance(instruction, Kick_Instruction):
-                return Operation_Color.SOFT_MISS
             return Operation_Color.MISS_FRONT if instruction.needle.is_front else Operation_Color.MISS_BACK
         elif instruction.instruction_type == Knitout_Instruction_Type.Split:
             return Operation_Color.SPLIT_TO_BACK if instruction.needle.is_front else Operation_Color.SPLIT_TO_FRONT
         elif instruction.instruction_type == Knitout_Instruction_Type.Xfer:
             return Operation_Color.XFER_TO_BACK if instruction.needle.is_front else Operation_Color.XFER_TO_FRONT
+        elif instruction.instruction_type is Knitout_Instruction_Type.Kick:
+            return Operation_Color.SOFT_MISS
         else:
             raise ValueError(f"No operation color corresponds to the instruction {instruction}.")

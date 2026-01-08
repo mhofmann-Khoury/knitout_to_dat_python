@@ -1,9 +1,8 @@
 """Module provides helper functions to convert Knit Script resources into knitout and dat files for testing."""
+
 from knit_graphs.Knit_Graph import Knit_Graph
 from knit_script.interpret_knit_script import knit_script_to_knitout
-from knit_script.knit_script_interpreter.Knit_Script_Interpreter import (
-    Knit_Script_Interpreter,
-)
+from knit_script.knit_script_interpreter.Knit_Script_Interpreter import Knit_Script_Interpreter
 from knitout_interpreter.knitout_execution import Knitout_Executer
 from knitout_interpreter.knitout_operations.Knitout_Line import Knitout_Comment_Line
 from knitout_interpreter.run_knitout import run_knitout
@@ -72,7 +71,7 @@ def load_test_knitscript_to_knitout(test_knitscript_filename: str, test_knitout_
     """
     test_knitscript_filename = load_test_resource(test_knitscript_filename)
     interpreter = Knit_Script_Interpreter()
-    knitout, knit_graph, machine_state = interpreter.write_knitout(test_knitscript_filename, test_knitout_filename, pattern_is_file=True, **python_variables)
+    knitout, knit_graph, machine_state, _return_val = interpreter.write_knitout(test_knitscript_filename, test_knitout_filename, pattern_is_file=True, **python_variables)
     knitout_executer = Knitout_Executer(knitout)
     clean_k_name = f"{test_knitout_filename[0:-2]}_clean.k"
     _clean_knitout(knitout_executer)

@@ -3,21 +3,16 @@
 This module provides enumerations for various option line color codes used in DAT files,
 along with utility functions for converting between different representations and determining appropriate settings based on carriage pass characteristics.
 """
+
 from __future__ import annotations
 
 from enum import Enum
 
 from knitout_interpreter.knitout_execution_structures.Carriage_Pass import Carriage_Pass
-from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import (
-    Carriage_Pass_Direction,
-)
-from virtual_knitting_machine.machine_components.yarn_management.Yarn_Carrier_Set import (
-    Yarn_Carrier_Set,
-)
+from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import Carriage_Pass_Direction
+from virtual_knitting_machine.machine_components.yarn_management.Yarn_Carrier_Set import Yarn_Carrier_Set
 
-from knitout_to_dat_python.dat_file_structure.dat_codes.dat_file_color_codes import (
-    NO_CARRIERS,
-)
+from knitout_to_dat_python.dat_file_structure.dat_codes.dat_file_color_codes import NO_CARRIERS
 
 
 class Link_Process_Color(Enum):
@@ -25,6 +20,7 @@ class Link_Process_Color(Enum):
 
     This enumeration defines color codes for link process operations in DAT files.
     """
+
     Ignore_Link_Process = 1
     """int: Color code to ignore link process operations."""
 
@@ -66,6 +62,7 @@ class Drop_Sinker_Color(Enum):
 
     This enumeration defines color codes that control drop-sinker functionality in knitting machine operations.
     """
+
     Standard = 0
     """int: Standard drop-sinker setting."""
 
@@ -110,6 +107,7 @@ class Amiss_Split_Hook_Color(Enum):
 
     This enumeration defines color codes for amiss split hook operations in knitting machine control.
     """
+
     Split_Hook = 10
     """int: Color code for split hook operation."""
 
@@ -151,6 +149,7 @@ class Pause_Color(Enum):
 
     This enumeration defines color codes for pause and reset operations in knitting machine control sequences.
     """
+
     Pause = 20
     """int: Color code for pause operation."""
 
@@ -192,6 +191,7 @@ class Hook_Operation_Color(Enum):
 
     This enumeration defines color codes for different yarn-inserting-hook operations used in knitting machine control.
     """
+
     No_Hook_Operation = 0
     """int: No hook operation active."""
 
@@ -242,6 +242,7 @@ class Knit_Cancel_Color(Enum):
 
     This enumeration defines color codes for different knit cancel and carriage movement options in knitting operations.
     """
+
     Knit_Cancel = 1
     """int: Used in Transfers."""
 
@@ -289,6 +290,7 @@ class Transfer_Type_Color(Enum):
 
     This enumeration defines color codes for different transfer slider configurations used in knitting machine operations.
     """
+
     To_Sliders = 1
     """int: Transfer operation to sliders."""
 
@@ -336,6 +338,7 @@ class Rack_Direction_Color(Enum):
 
     This enumeration defines color codes for controlling the direction of rack movement in knitting machine operations.
     """
+
     Left = 10
     """int: Leftward rack direction."""
 
@@ -380,6 +383,7 @@ class Rack_Pitch_Color(Enum):
 
     This enumeration defines color codes for controlling rack pitch settings in all-needle racking operations.
     """
+
     All_Needle = 1
     """int: All-needle racking pitch setting."""
 
@@ -426,6 +430,7 @@ class Carriage_Pass_Direction_Color(Enum):
     in knitting machine operations, including leftward, rightward, and unspecified
     directions.
     """
+
     Leftward = 7
     """int: Leftward carriage pass direction."""
 
@@ -506,6 +511,7 @@ class Presser_Setting_Color(Enum):
 
     This enumeration defines color codes for different presser mode settings that control presser behavior during carriage pass operations.
     """
+
     On = 101
     """int: Presser mode enabled."""
 
@@ -651,13 +657,13 @@ def pixel_to_carriers(pixel_value: int) -> Yarn_Carrier_Set | None:
     pixel_str = str(pixel_value)
 
     # Case: carrier 10 is leading (format: "10X" where X is 1-9)
-    if pixel_str.startswith('10') and len(pixel_str) == 3:
+    if pixel_str.startswith("10") and len(pixel_str) == 3:
         second_carrier = int(pixel_str[2])
         if 1 <= second_carrier <= 9:
             return Yarn_Carrier_Set([10, second_carrier])
 
     # Case: carrier 10 is following (format: "X0" where X is 2-9, not 1)
-    if pixel_str.endswith('0') and len(pixel_str) == 2:
+    if pixel_str.endswith("0") and len(pixel_str) == 2:
         first_carrier = int(pixel_str[0])
         if 2 <= first_carrier <= 9:  # carrier_ids[0] != 1
             return Yarn_Carrier_Set([first_carrier, 10])

@@ -3,6 +3,7 @@
 This module defines enumerations that map option line names to their corresponding line numbers in DAT files.
 Left and right option lines control different aspects of knitting machine operation and configuration.
 """
+
 from enum import Enum
 
 
@@ -12,6 +13,7 @@ class Left_Option_Lines(Enum):
     Left option lines control various machine settings and operational parameters on the left side of the DAT file structure.
     Each enumeration value corresponds to a specific line number where that option is configured.
     """
+
     Direction_Specification = 1
     """int: Line number for direction specification settings."""
 
@@ -78,6 +80,7 @@ class Right_Option_Lines(Enum):
     Right option lines control various machine settings and operational parameters on the right side of the DAT file structure.
     Each enumeration value corresponds to a specific line number where that option is configured.
     """
+
     Direction_Specification = 1
     """int: Line number for direction specification settings."""
 
