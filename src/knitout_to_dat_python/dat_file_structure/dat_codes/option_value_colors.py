@@ -9,6 +9,7 @@ from __future__ import annotations
 from enum import Enum
 
 from knitout_interpreter.knitout_execution_structures.Carriage_Pass import Carriage_Pass
+from knitout_interpreter.knitout_operations.knitout_instruction import Knitout_Instruction_Type
 from virtual_knitting_machine.machine_components.carriage_system.Carriage_Pass_Direction import Carriage_Pass_Direction
 from virtual_knitting_machine.machine_components.yarn_management.Yarn_Carrier_Set import Yarn_Carrier_Set
 
@@ -498,6 +499,8 @@ class Carriage_Pass_Direction_Color(Enum):
         """
         if carriage_pass.xfer_pass:
             return Carriage_Pass_Direction_Color.Unspecified
+        elif carriage_pass.contains_instruction_type(Knitout_Instruction_Type.Drop):
+            return Carriage_Pass_Direction_Color.Rightward
         elif carriage_pass.direction is Carriage_Pass_Direction.Leftward:
             return Carriage_Pass_Direction_Color.Leftward  # Left direction marker
         elif carriage_pass.direction is Carriage_Pass_Direction.Rightward:

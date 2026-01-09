@@ -41,6 +41,9 @@ class Operation_Color(Enum):
     KNIT_FRONT = 51
     """int: Indicates a knit operation on the front bed needle."""
 
+    DROP = 51
+    """int: Indicates a drop operation and equivalent to KNIT_FRONT"""
+
     KNIT_BACK = 52
     """int: Indicates a knit operation on the back bed needle."""
 
@@ -237,5 +240,7 @@ class Operation_Color(Enum):
             return Operation_Color.XFER_TO_BACK if instruction.needle.is_front else Operation_Color.XFER_TO_FRONT
         elif instruction.instruction_type is Knitout_Instruction_Type.Kick:
             return Operation_Color.SOFT_MISS
+        elif instruction.instruction_type is Knitout_Instruction_Type.Drop:
+            return Operation_Color.DROP
         else:
             raise ValueError(f"No operation color corresponds to the instruction {instruction}.")
