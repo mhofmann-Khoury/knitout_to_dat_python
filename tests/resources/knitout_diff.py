@@ -823,28 +823,24 @@ class KnitoutDiffer:
         # Join tokens with single spaces
         return " ".join(line.tokens)
 
-    # def _generate_unified_diff(self, file1_path: str, file2_path: str) -> str:
-    #     """Generate a unified diff string."""
-    #     text1 = [line.get_normalized_string(ignore_comments=self.ignore_comments) for line in self._lines1]
-    #     text2 = [line.get_normalized_string(ignore_comments=self.ignore_comments) for line in self._lines2]
-    #
-    #     diff = difflib.unified_diff(
-    #         text1, text2,
-    #         fromfile=file1_path,
-    #         tofile=file2_path,
-    #         lineterm=''
-    #     )
-    #
-    #     return '\n'.join(diff)
-
 
 def diff_knitout_files(
-    file1_path: str, file2_path: str, ignore_comments: bool = True, ignore_whitespace: bool = True, ignore_version: bool = True, verbose: bool = False, simple_report: bool = False
+    file1_path: str,
+    file2_path: str,
+    shift_file1: int = 0,
+    shift_file2: int = 0,
+    verbose: bool = False,
+    simple_report: bool = False,
+    ignore_comments: bool = True,
+    ignore_whitespace: bool = True,
+    ignore_version: bool = True,
 ) -> Knitout_Diff_Result:
     """
     Convenience function to diff two knitout files.
 
     Args:
+        shift_file1: The amount to shift the needle slots of file1 to get a match.
+        shift_file2: The amount to shift the needle slots of file2 to get a match.
         file1_path: Path to the first knitout file.
         file2_path: Path to the second knitout file.
         ignore_comments: If True, ignore comment differences (default: True).
@@ -856,7 +852,9 @@ def diff_knitout_files(
     Returns:
         DiffResult object containing comparison results.
     """
-    differ = KnitoutDiffer(file1_path, file2_path, ignore_comments=ignore_comments, ignore_whitespace=ignore_whitespace, ignore_version=ignore_version)
+    differ = KnitoutDiffer(
+        file1_path, file2_path, ignore_comments=ignore_comments, ignore_whitespace=ignore_whitespace, ignore_version=ignore_version, shift_file1=shift_file1, shift_file2=shift_file2
+    )
     diff_result = differ.get_diff_results()
     if simple_report:
         diff_result.simple_report()

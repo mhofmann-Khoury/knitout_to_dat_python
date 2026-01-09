@@ -1,6 +1,6 @@
 with Carrier as 1:{
 	in Leftward direction:{
-		knit Front_Needles[0:10];
+		tuck Front_Needles[0:10];
 	}
 	releasehook;
 }

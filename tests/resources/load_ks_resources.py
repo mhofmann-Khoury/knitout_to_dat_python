@@ -3,6 +3,7 @@
 from knit_graphs.Knit_Graph import Knit_Graph
 from knit_script.interpret_knit_script import knit_script_to_knitout
 from knit_script.knit_script_interpreter.Knit_Script_Interpreter import Knit_Script_Interpreter
+from knit_script.knit_script_interpreter.knitscript_logging.knitscript_logger import Knit_Script_Logger, KnitScript_Error_Log, KnitScript_Warning_Log
 from knitout_interpreter.knitout_execution import Knitout_Executer
 from knitout_interpreter.knitout_operations.Knitout_Line import Knitout_Comment_Line
 from knitout_interpreter.run_knitout import run_knitout
@@ -46,7 +47,7 @@ def load_test_knitout_to_dat(k_name: str, dat_name: str) -> tuple[str, str]:
         dat_name (str): The name of the dat file to generate from the cleaned knitout instructions.
 
     Returns:
-        tuple[str, str]: A tuple of the name with the file path information of the knitout resource file and the name of the generated cleaned knitout file.
+        tuple[str, str]: A tuple of the name with the file path information of the knitout resource file.
     """
     test_k_name = load_test_resource(k_name)
     knitout, _machine, _graph = run_knitout(test_k_name)
@@ -59,27 +60,27 @@ def load_test_knitout_to_dat(k_name: str, dat_name: str) -> tuple[str, str]:
     return test_k_name, clean_k_name
 
 
-def load_test_knitscript_to_knitout(test_knitscript_filename: str, test_knitout_filename: str, **python_variables) -> str:
+def load_test_knitscript_to_knitout(test_knitscript_filename: str, test_knitout_filename: str, **python_variables) -> None:
     """
     Generates a knitout file in the current directory that corresponds to the parameterized run of the given knitscript file.
     Args:
         test_knitscript_filename: The name of the knitscript to run from the test/resources package.
         test_knitout_filename: The name of the knitout file to generate.
         **python_variables: The keyword parameters to pass to the knitscript run.
-
-    Returns: The name of the cleaned knitout file (removing comments and semicolons).
     """
     test_knitscript_filename = load_test_resource(test_knitscript_filename)
-    interpreter = Knit_Script_Interpreter()
-    knitout, knit_graph, machine_state, _return_val = interpreter.write_knitout(test_knitscript_filename, test_knitout_filename, pattern_is_file=True, **python_variables)
-    knitout_executer = Knitout_Executer(knitout)
-    clean_k_name = f"{test_knitout_filename[0:-2]}_clean.k"
-    _clean_knitout(knitout_executer)
-    knitout_executer.write_executed_instructions(clean_k_name)
-    return clean_k_name
+    _knitgraph, _knitting_machine = knit_script_to_knitout(
+        test_knitscript_filename,
+        test_knitout_filename,
+        pattern_is_filename=True,
+        info_logger=Knit_Script_Logger(log_to_console=False, log_to_file=False),
+        warning_logger=KnitScript_Warning_Log(),
+        error_logger=KnitScript_Error_Log(),
+        **python_variables,
+    )
 
 
-def load_test_knitscript_to_knitout_to_old_dat(test_knitscript_filename: str, test_knitout_filename: str, test_dat_name: str, **python_variables) -> str:
+def load_test_knitscript_to_knitout_to_old_dat(test_knitscript_filename: str, test_knitout_filename: str, test_dat_name: str, **python_variables) -> None:
     """
     Generates a knitout file and dat file from the original JS Dat compiler in the current directory that corresponds to the parameterized run of the given knitscript file.
     Args:
@@ -87,11 +88,7 @@ def load_test_knitscript_to_knitout_to_old_dat(test_knitscript_filename: str, te
         test_knitscript_filename: The name of the knitscript to run from the test/resources package.
         test_knitout_filename: The name of the knitout file to generate.
         **python_variables: The keyword parameters to pass to the knitscript run.
-
-    Returns:
-        The name of the cleaned knitscript generated knitout file.
     """
-    clean_k_name = load_test_knitscript_to_knitout(test_knitscript_filename, test_knitout_filename, **python_variables)
+    load_test_knitscript_to_knitout(test_knitscript_filename, test_knitout_filename, **python_variables)
     success = compile_knitout(test_knitout_filename, test_dat_name)
     assert success, f"Dat file could not be produced from {test_knitout_filename}"
-    return clean_k_name

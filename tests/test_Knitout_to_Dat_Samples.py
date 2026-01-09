@@ -21,7 +21,7 @@ class TestDat_to_Knitout_Converter(TestCase):
         """
         original_k_file = f"{output_prefix}.k"
         js_dat_file_name = f"{output_prefix}_js.dat"
-        _clean_k_file = load_test_knitscript_to_knitout_to_old_dat(ks_file, original_k_file, js_dat_file_name, **ks_kwargs)
+        load_test_knitscript_to_knitout_to_old_dat(ks_file, original_k_file, js_dat_file_name, **ks_kwargs)
 
         dat_file_name = f"{output_prefix}_py.dat"
         knitout_to_dat(original_k_file, dat_file_name)
