@@ -1,5 +1,13 @@
+# Configuration file for the Sphinx documentation builder.
+#
+# For the full list of built-in configuration values, see the documentation:
+# https://www.sphinx-doc.org/en/master/usage/configuration.html
+
 import os
 import sys
+
+# -- Project information -----------------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 from importlib.metadata import PackageNotFoundError, version
 
 # Add the project root to the Python path
@@ -9,7 +17,6 @@ sys.path.insert(0, os.path.abspath("."))
 project = "Knitout-to-DAT"
 copyright = "2025, Megan Hofmann"
 author = "Megan Hofmann"
-
 try:
     # Get version from installed package metadata
     # This reads from pyproject.toml when the package is installed
@@ -18,8 +25,6 @@ except PackageNotFoundError:
     # Package is not installed (e.g., during development)
     # This happens when running from source without installation
     version = "0.0.0+dev"
-
-release = version
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -34,8 +39,6 @@ extensions = [
     "sphinx.ext.todo",  # Support for TODO items
     "sphinx.ext.coverage",  # Check documentation coverage
     "sphinx.ext.doctest",  # Test code snippets in documentation
-    "sphinx_autodoc_typehints",  # Better type hint support
-    "myst_parser",  # Support for Markdown files
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -65,7 +68,6 @@ html_theme_options = {
     "canonical_url": "",
     "analytics_id": "",
     "logo_only": False,
-    "display_version": True,
     "prev_next_buttons_location": "bottom",
     "style_external_links": False,
     "vcs_pageview_mode": "",
@@ -73,7 +75,7 @@ html_theme_options = {
     # Toc options
     "collapse_navigation": True,
     "sticky_navigation": True,
-    "navigation_depth": 6,
+    "navigation_depth": 4,
     "includehidden": True,
     "titles_only": False,
 }
@@ -88,8 +90,7 @@ autodoc_default_options = {
     "undoc-members": True,
     "exclude-members": "__weakref__",
     "show-inheritance": True,
-    "inherited-members": False,  # Changed to False to reduce clutter
-    "ignore-module-all": False,
+    "inherited-members": False,
 }
 
 # Don't show class signature with the class' name.
@@ -98,10 +99,10 @@ autodoc_class_signature = "mixed"
 # Control the order of content in module documentation
 autodoc_member_order = "bysource"
 
-# FIXED: Add proper type hint handling
+# Type hints configuration (built-in Sphinx support)
 autodoc_typehints = "description"  # Show type hints in parameter descriptions
-autodoc_typehints_description_target = "documented"
-autodoc_preserve_defaults = True
+autodoc_typehints_description_target = "documented"  # Only add type hints to documented parameters
+autodoc_typehints_format = "short"  # Use short type hint format (e.g., list instead of typing.List)
 
 # -- Options for autosummary ------------------------------------------------
 autosummary_generate = True
@@ -125,7 +126,6 @@ napoleon_use_rtype = True
 napoleon_preprocess_types = True  # FIXED: Changed to True for better type processing
 napoleon_type_aliases = None
 napoleon_attr_annotations = True
-napoleon_custom_sections = None
 
 # -- Options for intersphinx extension ---------------------------------------
 intersphinx_mapping = {
@@ -136,16 +136,6 @@ intersphinx_mapping = {
 
 # -- Options for todo extension ----------------------------------------------
 todo_include_todos = True
-
-# -- Options for typehints ---------------------------------------------------
-typehints_fully_qualified = False
-always_document_param_types = True
-typehints_document_rtype = True
-typehints_use_rtype = True
-# ADDED: Additional typehint settings for better rendering
-typehints_defaults = "comma"
-typehints_use_signature = True
-typehints_use_signature_return = True
 
 # -- Options for coverage extension ------------------------------------------
 coverage_ignore_modules = []
@@ -166,7 +156,7 @@ show_authors = False
 pygments_style = "sphinx"
 
 # A list of ignored prefixes for module index sorting.
-modindex_common_prefix = ["knitout_to_dat_python."]  # FIXED: Updated to match your package name
+modindex_common_prefix = ["knitout_to_dat_python."]
 
 
 # Custom autodoc processing to reorder content
